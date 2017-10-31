@@ -1,0 +1,322 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.service.AttachmentService;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.system.util.MapUtil;
+import com.upsoft.yxsw.dao.BizTSbBaseinfoDAO;
+import com.upsoft.yxsw.entity.BizTSbBaseinfo;
+import com.upsoft.yxsw.service.BizTSbBaseinfoService;
+
+
+@Service
+public class BizTSbBaseinfoServiceImpl extends BaseServiceImpl implements BizTSbBaseinfoService {
+	
+	@Autowired
+	BizTSbBaseinfoDAO sbBaseinfoDAO;
+	@Autowired
+	private AttachmentService  attachmentService;
+	
+	public Map<String, Object> getList(PageBean pageBean, Map<String, Object> params){
+		
+		StringBuilder sql = new StringBuilder();
+		sql.append(" SELECT T.SB_ID, T.SB_CODE, T.SB_FN_CODE, T.SB_NAME, T.SREMARK, T.SB_SORT, st.name SB_TYPE_ID, T.GCJK, T.SBXH, T.XNCS, T.JGYL, fac.name MANUFACTURE_ID, T.SUPPLY_ID, T.IS_ZXCJY, T.ZY_STATUS, T.START_VALUE, T.ZJPG_SJ, T.ZJPG_VALUE, T.REMARK, T.CAN_USE_YEAR, T.HAVE_LOST_YEAR, T.LONGITUDE, T.LATITUDE, T.BUY_DATE, T.START_USE_DATE, T.SET_ADDRESS, T.BYZD, T.DEL_FLAG, T.CREATE_TIMESTEMP, T.CREATOR_ACCOUNT, T.CREATOR_NAME, T.BELONG_WSC_ID, T.BELONG_WSC_NAME, T.BELONG_DEPT, T.UPDATOR_ACCOUNT, T.UPDATOR_NAME, T.UPDATE_TIMESTEMP ");
+		sql.append(" FROM BIZ_T_SB_BASEINFO T ");
+//		sql.append(" left join sys_dict_tree_data d1 on d1.parentnodeid= '" + DictConstant.EQ_TYPE.getValue() + "' and d1.code = T.SB_SORT ");
+//		sql.append(" left join sys_dict_tree_data d2 on d2.parentnodeid= '" + DictConstant.GC_JK.getValue() + "' and d2.code = T.GCJK ");
+//		sql.append(" left join sys_dict_tree_data d3 on d3.parentnodeid= '" + DictConstant.ZY_STATUS.getValue() + "' and d3.code = T.ZY_STATUS ");
+		sql.append(" left join BIZ_T_SB_TYPES st on st.SB_TYPE_ID = T.SB_TYPE_ID ");
+		sql.append(" left join BIZ_T_BASE_FACTORY_INFO fac on fac.ID = T.MANUFACTURE_ID ");
+		sql.append(" where 1=1 ");
+		sql.append(" and T.DEL_FLAG = 0");
+		
+		Map<String, Object> paramsMap = new HashMap<String, Object>();
+		if(null != params.get("sbName") && StringUtils.isNotBlank(params.get("sbName").toString())){
+			sql.append(" and T.SB_NAME like :sbName ");
+			paramsMap.put("sbName", MessageFormat.format("%{0}%", params.get("sbName").toString()));
+		}
+		if(null != params.get("sbSort") && StringUtils.isNotBlank(params.get("sbSort").toString())){
+			sql.append(" and T.SB_SORT = :sbSort ");
+			paramsMap.put("sbSort", params.get("sbSort").toString());
+		}
+		if(null != params.get("isZxcjy") && StringUtils.isNotBlank(params.get("isZxcjy").toString())){
+			sql.append(" and T.IS_ZXCJY = :isZxcjy ");
+			paramsMap.put("isZxcjy", params.get("isZxcjy").toString());
+		}
+		//设备类型，可通过父类型查询所有子类型的设备
+		if(null != params.get("sbTypeId") && StringUtils.isNotBlank(params.get("sbTypeId").toString())){
+//			sql.append(" and T.SB_TYPE_ID = :sbTypeId ");
+			sql.append(" and T.SB_TYPE_ID in (SELECT st.sb_type_id from  biz_t_sb_types st START WITH st.sb_type_id = :sbTypeId CONNECT BY PRIOR st.sb_type_id = st.parent_type_id)");
+			paramsMap.put("sbTypeId", params.get("sbTypeId").toString());
+		}
+		if(null != params.get("gcjk") && StringUtils.isNotBlank(params.get("gcjk").toString())){
+			sql.append(" and T.GCJK = :gcjk ");
+			paramsMap.put("gcjk", params.get("gcjk").toString());
+		}
+		if(null != params.get("zyStatus") && StringUtils.isNotBlank(params.get("zyStatus").toString())){
+			sql.append(" and T.ZY_STATUS = :zyStatus ");
+			paramsMap.put("zyStatus", params.get("zyStatus").toString());
+		}
+		//设备厂商，模糊匹配
+		if(null != params.get("factoryName") && StringUtils.isNotBlank(params.get("factoryName").toString())){
+//			sql.append(" and T.ZY_STATUS = :zyStatus ");
+			sql.append(" and T.MANUFACTURE_ID in (select f.id from BIZ_T_BASE_FACTORY_INFO f where f.name like :factoryName) ");
+			paramsMap.put("factoryName", MessageFormat.format("%{0}%", params.get("factoryName").toString()));
+		}
+		if(null != params.get("orgCode") && StringUtils.isNotBlank(params.get("orgCode").toString())){
+			sql.append(" and T.BELONG_WSC_ID = :orgCode ");
+			paramsMap.put("orgCode", params.get("orgCode").toString());
+		}
+		if(MapUtil.hasParam(params,"ssId")){
+			sql.append(" AND (SELECT COUNT(R.SB_ID) FROM BIZ_T_SBSS_RELATION R WHERE R.SB_ID = T.SB_ID)=0");
+		}
+		
+		return sbBaseinfoDAO.queryPaginationListBySql(sql.toString(), paramsMap, pageBean);
+	}
+	
+	public BizTSbBaseinfo save(BizTSbBaseinfo bizTSbBaseinfo){
+		
+		sbBaseinfoDAO.save(bizTSbBaseinfo);
+		return bizTSbBaseinfo;
+	}
+	
+	public BizTSbBaseinfo save(BizTSbBaseinfo bizTSbBaseinfo, String attachmentList, WSLoginInfoBean loginInfo){
+		
+		bizTSbBaseinfo = sbBaseinfoDAO.save(bizTSbBaseinfo);
+		attachmentService.saveAttachment(bizTSbBaseinfo.getSbId(), attachmentList, loginInfo);
+		return bizTSbBaseinfo;
+	}
+	
+	public BizTSbBaseinfo save(BizTSbBaseinfo bizTSbBaseinfo, String attachmentList,String delAttachmentList, WSLoginInfoBean loginInfo){
+		
+		bizTSbBaseinfo = sbBaseinfoDAO.save(bizTSbBaseinfo);
+		attachmentService.saveAttachment(bizTSbBaseinfo.getSbId(), attachmentList, loginInfo);
+		attachmentService.delAttachment(delAttachmentList);
+		return bizTSbBaseinfo;
+	}
+	
+	public BizTSbBaseinfo getBizTSbBaseinfoById(String id){
+		return sbBaseinfoDAO.findOne(id);
+	}
+
+	@Override
+	public boolean eqExists(String eqCode) {
+		String sql = "select * from BIZ_T_SB_BASEINFO T where t.SB_CODE = '" + eqCode + "'";
+//		Long count = sbBaseinfoDAO.queryCountBySql(sql, new String[]{});
+		int count = sbBaseinfoDAO.queryListBySql(sql,  new String[]{}).size();
+		if(count > 0){
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	
+
+	@Override
+	public List<Map<String, Object>> queryByTreeId(Map<String, Object> params) {
+		String sql = "SELECT  B.SB_ID ID  ,  B.SB_CODE,B.SB_FN_CODE,B.SB_NAME NAME , B.SBXH, B.XNCS, B.SET_ADDRESS, B.ZY_STATUS, B.SB_SORT,B.JGYL,B.BELONG_WSC_NAME PARENTID, B.BELONG_WSC_ID  ";
+		sql += " FROM BIZ_T_SB_BASEINFO B";
+		List<Map<String, Object>> list = sbBaseinfoDAO.queryListBySql(sql, new HashMap<String, Object>());
+
+		if (null != list && list.size() > 0) {
+			return list;
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+	}
+	
+
+
+	@Override
+	public Map<String, Object> getNoRelatedData(PageBean pageBean,
+			Map<String, Object> params, WSLoginInfoBean loginInfo) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(" SELECT EQ.* FROM ( ");
+		sql.append(" SELECT B.SB_ID, B.SB_CODE,B.SB_FN_CODE,B.SB_SORT,B.SB_TYPE_ID,B.SB_NAME,B.SBXH,B.XNCS,B.SET_ADDRESS,B.ZY_STATUS,f_get_sb_is_attach_xjd(B.SB_ID,NULL) AS IS_ATTACH ");
+		sql.append(" FROM BIZ_T_SB_BASEINFO B WHERE 1=1");
+		sql.append(" AND B.DEL_FLAG = '0' ");
+		sql.append(" AND B.ZY_STATUS = '02'");
+		sql.append(" AND B.BELONG_WSC_ID ='"+loginInfo.getCsOrgId()+"' ");
+		if(null != params){
+			if(params.containsKey("eqName")){
+				sql.append(" AND B.SB_NAME LIKE '%"+params.get("eqName").toString()+"%' ");
+			}
+			if(params.containsKey("setAddress")){
+				sql.append(" AND B.SET_ADDRESS LIKE '%"+params.get("setAddress").toString()+"%' ");
+			}
+		}   
+		sql.append(" ) eq ");
+		sql.append(" WHERE EQ.IS_ATTACH = '0'  ");
+		return sbBaseinfoDAO.queryPaginationListBySql(sql.toString(), new HashMap<String,Object>(), pageBean);
+	}
+
+	@Override
+	public Map<String, Object> getRelatedEqData(PageBean pageBean,
+			String spotId, WSLoginInfoBean loginInfo) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(" SELECT D.DETAIL_ID,B.SB_ID, B.SB_CODE,B.SB_FN_CODE,B.SB_NAME,B.SB_SORT,B.SBXH,B.SB_TYPE_ID,B.GCJK,B.XNCS,B.SET_ADDRESS,B.ZY_STATUS ");
+		sql.append(" FROM BIZ_T_SB_BASEINFO B ");
+		sql.append(" LEFT JOIN BIZ_T_XJD_ITEM_DETAIL D ON B.SB_ID = D.SBSS_ID ");
+	    sql.append(" WHERE 1=1 ");
+	    sql.append(" AND B.DEL_FLAG = '0' ");
+	    sql.append(" AND D.XJD_ITEM_ID ='"+ spotId +"'");
+	  
+		return sbBaseinfoDAO.queryPaginationListBySql(sql.toString(), new HashMap<String,Object>(), pageBean);
+	}
+
+	@Override
+	public Map<String, Object> getFreqNoReEqList(PageBean pageBean, String freqId, Map<String, Object> params) {
+		
+		StringBuilder sql = new StringBuilder();
+		Map<String, Object> paramsMap = new HashMap<String,Object>();
+		sql.append("SELECT M.TECHNICS_ID,");
+		sql.append("       M.TECHNICS_NAME,");
+		sql.append("       I.XJD_ITEM_ID,");
+		sql.append("       I.XJD_ITEM_NAME,");
+		sql.append("       I.XJD_ITEM_ADDRESS,");
+		sql.append("       D.SBSS_ID,");
+		sql.append("       SB.SB_NAME,");
+		sql.append("       SB.SET_ADDRESS,");
+		sql.append("       SB.SB_SORT,");
+		sql.append("       SB.GCJK,");
+		sql.append("       SB.SBXH,");
+		sql.append("       F_GET_SB_TYPE_NAME(SB.SB_TYPE_ID) SB_TYPE_NAME");
+		sql.append("  FROM BIZ_T_XJ_TECHNICS_SCOPE_MANAGE M,");
+		sql.append("       BIZ_T_XJ_TECHNICS_SCOPE_ATT_XJ A,");
+		sql.append("       BIZ_T_XJD_ITEM                 I,");
+		sql.append("       BIZ_T_XJD_ITEM_DETAIL          D,");
+		sql.append("       BIZ_T_SB_BASEINFO              SB");
+		sql.append(" WHERE M.TECHNICS_ID = A.TECHNICS_ID");
+		sql.append("   AND A.XJD_ITEM_ID = I.XJD_ITEM_ID");
+		sql.append("   AND I.XJD_ITEM_ID = D.XJD_ITEM_ID");
+		sql.append("   AND D.SBSS_ID = SB.SB_ID");
+		sql.append(" AND M.DEL_FLAG = '0' ");	//工艺段未删除
+		sql.append(" AND I.DEL_FLAG = '0' ");	//巡检点未删除
+		sql.append(" AND SB.DEL_FLAG ='0' ");	//设备未删除
+		sql.append(" AND D.DETAIL_TYPE = '1' ");	//只查询巡检点关联的设备,不查询设施
+		
+		if(null != params.get("orgId") && StringUtils.isNotBlank(params.get("orgId").toString())){
+			sql.append("  AND M.BELONG_WSC_ID= :orgId ");	//操作人所在机构的ID
+			paramsMap.put("orgId", params.get("orgId").toString());
+		}
+		if(null != params.get("sbName") && StringUtils.isNotBlank(params.get("sbName").toString())){
+			sql.append(" and SB.SB_NAME like :sbName ");
+			paramsMap.put("sbName", MessageFormat.format("%{0}%", params.get("sbName").toString()));
+		}
+		if(null != params.get("sbSort") && StringUtils.isNotBlank(params.get("sbSort").toString())){
+			sql.append("  AND SB.SB_SORT= :sbSort ");	//操作人所在机构的ID
+			paramsMap.put("sbSort", params.get("sbSort").toString());
+		}
+		
+		sql.append(" AND F_XJ_FREQ_SEGMENT_SBSS_ISRPT(:freqId,D.SBSS_ID) ='0' "); //参数  班次频率ID
+		paramsMap.put("freqId", freqId);
+		return sbBaseinfoDAO.queryPaginationListBySql(sql.toString(), paramsMap, pageBean);
+	}
+
+	@Override
+	public List<Map<String, Object>> getdate(String csOrgId, String sbTypeId,
+			String sbStatus,String idNew) {
+//		StringBuffer sql=new StringBuffer();
+//		Map<String,Object> par=new HashMap<String, Object>();
+//		sql.append(" select COUNT(T.SB_TYPE_ID) COUNT, T.BELONG_WSC_NAME,TY.NAME from BIZ_T_SB_BASEINFO t");
+//		sql.append(" LEFT JOIN BIZ_T_SB_TYPES TY ON TY.SB_TYPE_ID = T.SB_TYPE_ID");
+//	
+//		
+//		if(null!=csOrgId&&StringUtils.isNotBlank(csOrgId)){
+//			
+//			sql.append(" WHERE T.BELONG_WSC_ID IN");
+//			sql.append("  (select o.ORGID");
+//			sql.append("   from SYS_ORG O");
+//			sql.append("  where o.ORGTYPEID in (1, 2, 3) START WITH O.ORGID =:csOrgId");
+//			sql.append("  CONNECT BY PRIOR O.ORGID = O.PARENTORGID) ");
+//			par.put("csOrgId", csOrgId);
+//		}
+//		if(null!=sbTypeId&&StringUtils.isNotBlank(sbTypeId)){
+//			sql.append(" AND T.SB_TYPE_ID=:sbTypeId");	
+//			par.put("sbTypeId", sbTypeId);
+//				
+//		}
+//		if(null!=sbStatus&&StringUtils.isNotBlank(sbStatus)){
+//			sql.append(" AND T.ZY_STATUS=:sbStatus");
+//			par.put("sbStatus", sbStatus);
+//		}
+//		sql.append("    GROUP BY T.BELONG_WSC_NAME,TY.NAME  ");
+//		List<Map<String, Object>> list = sbBaseinfoDAO.queryListBySql(sql.toString(), par);
+//		if(null!=list&&list.size()>0){
+//			
+//			return list;
+//		}else{
+//			
+//			return  new ArrayList<>();
+//		}
+	    Map<String,Object> par=new HashMap<String,Object>();
+		StringBuilder sql=new StringBuilder();
+		
+		if(null!=idNew&&StringUtils.isNotBlank(idNew)){
+			sql.append(" Select t.sb_type_id");
+			sql.append(" From BIZ_T_SB_TYPES t where 1=1 and t.parent_type_id =:idNew  ");
+			par.put("idNew", idNew);
+		}else{
+		sql.append(" SELECT T.SB_TYPE_ID FROM BIZ_T_SB_TYPES T WHERE T.PARENT_TYPE_ID IS NULL");
+		
+		if(null!=sbTypeId&&StringUtils.isNotBlank(sbTypeId)){
+			sql.append(" AND T.SB_TYPE_ID=:sbTypeId ");	
+	        par.put("sbTypeId", sbTypeId);
+		}
+		}
+		
+		List<Map<String,Object>> typeList =  sbBaseinfoDAO.queryListBySql(sql.toString(), par);
+		StringBuffer sql2 = new StringBuffer();
+		Map<String,Object> par1=new HashMap<String,Object>();
+		if(null!= typeList && typeList.size()>0){
+			for (int i=0; i < typeList.size();i++) {
+				String id = typeList.get(i).get("sb_type_id").toString();
+				
+				sql2.append(" select count(1) count,o.belong_wsc_id,o.belong_wsc_name,(select tst.name from biz_t_sb_types tst where tst.sb_type_id='"+ id +"') typename ,'"+id+"' typeid ");
+				sql2.append(" from biz_t_sb_baseinfo o ");
+				sql2.append(" where o.sb_type_id in ");
+				sql2.append(" (select t.sb_type_id ");
+				sql2.append("  from biz_t_sb_types t ");
+				sql2.append(" START WITH t.sb_type_id = '"+ id +"' ");
+				sql2.append(" CONNECT BY PRIOR t.sb_type_id = t.parent_type_id) ");
+				if(null!=csOrgId&&StringUtils.isNotBlank(csOrgId)){
+					sql2.append(" AND O.BELONG_WSC_ID IN");
+					sql2.append("  (SELECT T.ORGID");
+					sql2.append("   FROM SYS_ORG T");
+					sql2.append("  WHERE T.ORGTYPEID IN (1, 2, 3) START WITH T.ORGID =:csOrgId");
+					sql2.append("  CONNECT BY PRIOR T.ORGID = T.PARENTORGID) ");
+					par1.put("csOrgId", csOrgId);
+					
+				}
+				if(null!=sbStatus&&StringUtils.isNotBlank(sbStatus)){
+					sql2.append("  and o.zy_status=:sbStatus");
+					par1.put("sbStatus", sbStatus);
+			
+				}
+				sql2.append(" group by o.belong_wsc_id,o.belong_wsc_name ");
+				if(i < typeList.size()-1){
+					sql2.append(" union all ");
+				}
+			}
+			List<Map<String,Object>> list =  sbBaseinfoDAO.queryListBySql(sql2.toString(), par1);
+			
+			return list;
+		}else{
+			return new ArrayList<>();
+		}
+	}
+	
+}
+

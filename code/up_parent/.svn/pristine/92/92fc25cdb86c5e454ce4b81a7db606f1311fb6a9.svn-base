@@ -1,0 +1,191 @@
+/**
+ * 
+ */
+var grid;
+var diag;
+var oriFunc;	//编辑配置内容方法
+
+function initComplete(){
+	
+	//编辑页面初始化指标项列表
+	if(!addItem){
+		initGrid();
+	}
+	
+	$(".cb").find(":checkbox").bind("change",function(){
+		checkBxValid();
+	})
+	//绑定提交事件
+	/*$('#form').submit(function(){
+		
+		$('#form').validationEngine();
+		if(!checkBxValid()){
+			return false;
+		}
+	    var valid = $('#form').validationEngine({returnIsValid: true});
+	    if(valid){
+	    	$(this).ajaxSubmit({
+	            //表单提交成功后的回调
+	            success: function(responseText, statusText, xhr, $form){
+	            	
+	            	if(responseText.flag == true){
+	    				
+	    				Dialog.alert(responseText.message,function(){
+	    					
+	    					if(responseText.data){
+	    						
+	    						//打开编辑弹窗
+	    						oriFunc(responseText.data.zxpTempItmId);
+	    					}else{
+	    						oriFunc();
+	    					}
+	                    });
+	    			}else{
+	    				
+	    				Dialog.alert(responseText.message);
+	    			}
+	            },
+	            error: function(responseText, statusText, xhr, $form){
+	            	Dialog.alert("提交失败");
+	            }
+	     	});
+	     }
+	    //阻止表单默认提交事件
+	    return false; 
+	});*/
+}
+
+//指标项列表
+function initGrid(){
+	grid = $("#zyptemp_item_detail").quiGrid({
+		columns:[
+					{ display: '指标项编码', name:'cxzb_code', align: 'center', width: "40%"},
+				    { display: '指标项名称', name:'cxzb_name',	align: 'center', width: "60%"},
+				    { display: '操 作',	isAllowHide: false, align: 'center', width:100,
+						render: function (rowdata, rowindex, value, column){
+		            	   var html = '<div class="padding_top4 padding_left5">';
+		            	   html += '<span class="img_list hand" title="查看" onclick="toViewZbx(\'' + rowdata.cxzb_id + '\')"></span>';
+		                   if(isRemoveAble){
+		                	   html += '<span class="img_delete hand" title="删除" onclick="doDelZbx(\'' + rowdata.detail_id + '\')"></span>';
+		                   }
+		                   html += '</div>';
+		                   return html;
+		                }
+		           }
+			  ],
+			 url:path+"/zypTemp/getItemZbxList",
+			 params:{"zxpTempItmId":zxpTempItmId },
+			 rownumbers:true,
+			 checkbox:false,selectRowButtonOnly:false,
+		     height: '100%', width:"100%", percentWidthMode:true,pageSize:20,
+		     toolbar:{
+		    	 items:[
+				      {text: '新增', click: toAddZbx, iconClass: 'icon_add',visible:true},
+				      { line : true }
+		    		]
+		     	}
+			});
+}
+
+//新增作业票配置指标项
+function toAddZbx(){
+	
+	diag = new top.Dialog();
+	diag.Title = "新增指标项";
+	diag.URL = path + "/zypTemp/toAddZbx?zxpTempItmId=" + zxpTempItmId;
+	diag.Width = 900;
+	diag.Height = 500;
+	//设置保存按钮文字（默认是确定）
+	diag.OkButtonText = "确定";
+	diag.OKEvent = function(){
+		//调用子页面submitForm 方法
+		diag.innerFrame.contentWindow.addZbx(refresh);
+	};
+	diag.show();
+//	location.href = path + "/zypTemp/toAddTempItem" + "?backURL=" + getBackUrl($("#queryForm"), grid);
+}
+
+function toViewZbx(cxzbId){
+	Dialog.open({
+		URL:path + "/indicative/toShowInd?cxzb_id=" + cxzbId,
+		Title:"查看",Width:650, Height:480});
+}
+
+//删除班次详情行
+function doDelZbx(detailId){
+	 Dialog.confirm("确定要删除吗？",function(){
+        $.post(path+"/zypTemp/doDelZbx",
+                { "detailId" : detailId},
+                function(result){
+                    if(result.flag){
+                   	 Dialog.alert(result.message);
+                   	 grid.loadData();
+                    }else{
+                   	 Dialog.alert(result.message);
+                    }
+                },
+                "json");
+    });
+}
+
+function submitForm(fun){
+	oriFunc = fun;
+//	jQuery("#form").submit();
+	
+	$('#form').validationEngine();
+    var valid = $('#form').validationEngine({returnIsValid: true});
+    if(valid && checkBxValid()){
+    	$('#form').ajaxSubmit({
+            //表单提交成功后的回调
+            success: function(responseText, statusText, xhr, $form){
+            	
+            	if(responseText.flag == true){
+    				
+    				Dialog.alert(responseText.message,function(){
+    					
+    					if(responseText.data){
+    						
+    						//打开编辑弹窗
+    						oriFunc(responseText.data.zxpTempItmId);
+    					}else{
+    						oriFunc();
+    					}
+                    });
+    			}else{
+    				
+    				Dialog.alert(responseText.message);
+    			}
+            },
+            error: function(responseText, statusText, xhr, $form){
+            	Dialog.alert("提交失败");
+            }
+     	});
+     }
+}
+
+function back(){
+	
+	location.href= backURL;
+}
+
+function refresh(){
+	grid.loadData();
+	diag.close();
+}
+
+function checkBxValid(){
+	
+	var valid;
+	if($(".cb").find(":checkbox:checked").length <= 0){	//必选一个填写内容
+		$(".cb").find("span").css("border", "solid 1px #F00");
+		$(".cb").find("span").attr("title","* 请选择至少一个");
+		valid = false;
+	}else{
+		$(".cb").find("span").css("border", "none");
+		$(".cb").find("span").attr("title"," ");
+		hideTooltip();	//qui隐藏提示
+		valid = true;
+	}
+	addTooltip($(".cb").find("span")[0]);	//qui动态添加提示
+	return valid;
+}

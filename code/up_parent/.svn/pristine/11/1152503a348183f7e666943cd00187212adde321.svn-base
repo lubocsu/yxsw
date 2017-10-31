@@ -1,0 +1,313 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>作业票详情</title>
+<script type="text/javascript" src="${path }/js/jquery-1.7.2.min.js"></script>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+
+<script type="text/javascript" src="${path }/js/pis-common.js"></script>
+<script type="text/javascript" src="${path }/js/dateutil.js"></script>
+<script type="text/javascript">
+	jQuery(function(){
+		jQuery(".time").each(function(){
+			$(this).text(dateStr2Str($(this).text(),"$1-$2-$3 $4:$5"));
+		})
+	});
+	
+	function locationAddr(){
+		parent.locationAtMap();
+	}
+	// orderId,attachmentType (3为工单登记图片)
+	function showPic(processId,attachmentType){
+		if("3"==attachmentType){
+			var url = '${path }/orderquery/viewPic?orderId='+processId+'&attachmentType=3&_='+new Date();		
+			jQuery("#showPic_3 iframe").attr("src",url);
+			jQuery("#showPic_3").show();
+			jQuery("#showPic_1_2").hide();
+		}else{
+			var url1 = '${path }/orderquery/viewPic?orderId='+processId+'&attachmentType=1&_='+new Date();	
+			var url2 = '${path }/orderquery/viewPic?orderId='+processId+'&attachmentType=2&_='+new Date();	
+			jQuery("#showPic_1_2 #_left iframe").attr("src",url1);
+			jQuery("#showPic_1_2 #_right iframe").attr("src",url2);
+			jQuery("#showPic_3").hide();
+			jQuery("#showPic_1_2").show();
+		}
+	}
+	
+	function hidePic(){
+		jQuery("#showPic_3").hide();
+		jQuery("#showPic_1_2").hide();
+	}
+</script>
+<style type="text/css">
+	.task-audit-material table tr td{
+		border: 1px solid #99ccff;
+		text-align: center;
+	}
+	.showPic{width: 100%;height: 100%;display: none; position: relative;}
+	#_left,#_right{width: 50%;height: 100%; float:left;}
+	#showPic_1_2 iframe,#showPic_3 iframe {width: 100%;height: 100%;}
+</style>
+</head>
+<body>
+	<div class="details-max">
+		<div class="list-content">
+			<div class="order-status-name"><span style="float:right;">${order.order_status_name }</span><div></div></div>
+	    	 <div class="details-container">
+	    	 	<!-- 工单基本信息 start -->
+	         	<div class="task-detail">
+	            	 <span class="detail-title">故障登记</span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div> 
+	                 <table class="detail-list">
+	                 	<tr>
+	                 		<th>工单编号：</th>
+	                 		<td>${order.order_code }<c:if test="${deliverOrg != ''}"> (转交自：${deliverOrg })</c:if></td>
+	                 		<th>报修人：</th>
+	                        <td>${order.report_person }</td>
+	                 	</tr>
+	                    <tr>
+	                        <th>工单标题：</th>
+	                        <td>${order.order_title }</td>
+	                        <th>报修时间：</th>
+	                    	<td class="time">${order.report_time }</td>
+	                    </tr>
+	                    <tr>
+	                    	<th>工单来源：</th>
+	                    	<td>${order.order_source_name}</td>
+	                        <th>联系电话：</th>
+	                        <td>${order.report_person_tel }</td>
+	                    </tr>
+	                   
+	                    <tr>
+	                        <th>故障地址：</th>
+	                        <td colspan="3" valign="middle">
+	                        	<div style="float: left; height: 30px;line-height: 30px;">${order.fault_address }</div>
+	                        	<c:if test="${!empty order.fault_address_latitude }">
+		                        	<div style="float: left;cursor: pointer;" >
+		                        		<img onclick="locationAddr();" width="30" height="30" alt="定位" src="${path }/images/map_position.png">
+		                        	</div>
+	                        	</c:if>
+	                        </td>
+	                    </tr>
+	                    <tr>
+	                        <th>故障描述：</th>
+	                        <td colspan="3">${order.fault_description }</td>
+	                    </tr>
+	                    <c:if test="${!empty orderAttachment }">
+		                    <tr>
+		                    	<th>故障图片：</th>
+		                    	<td colspan="3">
+		                    		<div class="imglist">
+		                    		<c:forEach items="${orderAttachment }" var="item">
+		                    			<img onclick="showPic('${item.businessId }','${item.attachmentType }');" alt="${item.attachmentName }" src="${ImageServerURL }/${item.attachmentPath }" width="80" height="60">
+		                    		</c:forEach>
+		                    		</div>
+		                    	</td>
+		                    </tr>
+	                    </c:if>
+	                 </table>
+	            </div>
+	            <!-- 工单基本信息 end -->
+	            <!-- 工单派发信息 start-->
+	            <c:if test="${!empty orderSendInfo }">
+		            <div class="task-audit">
+		            	<span class="detail-title">维修派单</span>
+		                 <div class="to_hide_over_content" class="text">
+		          			<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+		        		 </div> 
+		                 <table class="detail-list">
+		                    <tr>
+		                        <th>紧急程度：</th>
+		                        <td>
+		                        	<c:if test="${order.order_precedence eq '1'}">一般</c:if>
+		                        	<c:if test="${order.order_precedence eq '2'}">紧急</c:if>
+		                        </td>
+		                        <th>派发时间：</th>
+		                        <td class="time">${order.order_dispatch_time}</td>
+		                    </tr>
+		                    <tr>
+		                    	<th>工单类型：</th>
+		                   		<td>
+		                   			<c:if test="${order.order_type eq '1'}">维修</c:if>
+		                   			<c:if test="${order.order_type eq '2'}">其他</c:if>
+		                   		</td>
+		                    	<th>办理期限：</th>
+		                    	<td class="time">${order.order_timeline }</td>
+	                    	</tr>
+		                    <tr>
+		                        <th>处理人：</th>
+		                        <td>${order.order_receiver_name }</td>
+		                        <th>处理人机构：</th>
+		                        <td>${order.order_receive_org_name }</td>
+		                    </tr>
+		                    <tr>
+		                        <th>维修要求：</th>
+		                        <td colspan="3">${order.order_requirements }</td>
+		                    </tr>
+		                 </table>	
+		            </div>
+	            </c:if>
+	            <!-- 工单派发信息end -->
+	            <!-- 工单处理信息 -->
+	            <c:if test="${!empty workOrderProcess }">
+		            <!-- 工单回复 start-->
+		            <div class="task-audit">
+		            	<span class="detail-title">处理信息</span>
+		                 <div class="to_hide_over_content" class="text">
+		          			<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+		        		 </div> 
+		                 <table class="detail-list">
+		                   	<c:if test="${!empty beforeWordAttachment}">
+		                   		<tr>
+			                        <th>处理前拍照：</th>
+			                        <td colspan="3">
+			                        	<c:forEach items="${beforeWordAttachment }" var="beforeAttachmentItem">
+			                    			<img onclick="showPic('${beforeAttachmentItem.businessId }','${beforeAttachmentItem.attachmentType}')"
+			                    			 alt="${beforeAttachmentItem.attachmentName }" src="${ImageServerURL }/${beforeAttachmentItem.attachmentPath }" width="80" height="60">
+			                    		</c:forEach>
+			                        </td>
+		                    	</tr>
+		                   	</c:if>
+							<tr>
+			                   	<th>处理前描述：</th>
+			                	<td>${workOrderProcess.processDescStart }</td>
+			                   	<th></th>
+			                   	<td>${wordOrderProcess.processTimeStart }</td>
+	                    	</tr>
+		                    <c:if test="${!empty endWordAttachment}">
+		                   		<tr>
+			                        <th>处理后拍照：</th>
+			                        <td colspan="3">
+			                        	<c:forEach items="${endWordAttachment }" var="endAttachmentItem">
+			                    			<img  onclick="showPic('${endAttachmentItem.businessId }','${endAttachmentItem.attachmentType}')" 
+			                    			 alt="${endAttachmentItem.attachmentName }" src="${ImageServerURL }/${endAttachmentItem.attachmentPath }" width="80" height="60">
+			                    		</c:forEach>
+			                        </td>
+		                    	</tr>
+		                   	</c:if>
+								<tr>
+			                    	<th>处理后描述：</th>
+			                   		<td>${workOrderProcess.processDescEnd }</td>
+			                   		<th></th>
+			                   		<td>${wordOrderProcess.processTimeStart }</td>
+	                    		</tr>
+	                    		<tr>
+									<th>故障类型：</th>
+									<td>${workOrderProcess.faultType}</td>
+								</tr>
+	                    		<tr>
+									<th>辅助人数：</th>
+									<td>${workOrderProcess.processWorkerCount }</td>
+								</tr>
+								<tr>
+									<th>协助人员：</th>
+									<td>${assistName }</td>
+								</tr>
+		                 </table>	
+		            </div>
+		            <!-- 工单回复内容end -->
+		            <!-- 处理设备 start-->
+		            <c:if test="${!empty proccessEquipment }">
+			            <div class="task-audit task-audit-material">
+			            	<span class="detail-title">处理设备</span>
+			                 <div class="to_hide_over_content" class="text">
+			          			<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+			        		 </div> 
+			                 <table class="detail-list">
+			                    	<tr style="background-color: #c6e5fb;">
+<!-- 				                        <td style="color: #006699;">标签编码</td> -->
+				                        <td style="color: #006699;">设备编号</td>
+				                        <td style="color: #006699;">设备类型</td>
+			                    	</tr>
+				                    <c:forEach items="${proccessEquipment }" var="equipmentItem">
+						            	<tr>
+<%-- 						                	<td>${equipmentItem.tag_code }</td> --%>
+						                	<td>${equipmentItem.equip_code }</td>
+						                	<td>${equipmentItem.equip_name }</td>        	
+						                </tr>    
+				                    </c:forEach>
+			                 </table>	
+			            </div>
+		            </c:if>
+		            <!-- 处理设备信息end -->
+		            <!-- 材料清单 start-->
+		            <c:if test="${!empty materials }">
+			            <div class="task-audit task-audit-material">
+			            	<span class="detail-title">材料清单</span>
+			                 <div class="to_hide_over_content" class="text">
+			          			<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+			        		 </div> 
+			                 <table class="detail-list">
+			                    	<tr style="background-color: #c6e5fb;">
+<!-- 				                        <td style="color: #006699;">材料编号</td> -->
+				                        <td style="color: #006699;">材料名称</td>
+				                        <td style="color: #006699;">使用数据</td>
+			                    	</tr>
+				                    <c:forEach items="${materials }" var="materialItem">
+						            	<tr>
+<%-- 						                	<td>${materialItem.material_code }</td> --%>
+						                	<td>${materialItem.material_name }</td>
+						                	<td>${materialItem.material_quantity }</td>        	
+						                </tr>    
+				                    </c:forEach>
+			                 </table>	
+			            </div>
+		            </c:if>
+		            <!-- 材料清单信息end -->
+	            </c:if>
+	            <!-- 工单处理信息end -->
+	            <!-- 工单审核信息  start-->
+	            <c:if test="${!empty orderAuditInfo }">
+	            	<div class="task-audit">
+			            <span class="detail-title">审核意见</span>
+			            <div class="to_hide_over_content" class="text">
+			          		<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+			        	</div> 
+			            <table class="detail-list">
+			            	<tr>
+			            		<th>是否通过：</th>
+			            		<td>
+			            			<c:if test="${orderAuditInfo.procedureStatus eq '1' }">通过</c:if>
+			            			<c:if test="${orderAuditInfo.procedureStatus eq '0' }">不通过</c:if>
+			            		</td>
+			            		<th>审核意见：</th>
+			            		<td>${orderAuditInfo.procedureDescription }</td>
+			            	</tr>
+			            	<tr>
+			            		<th>审核人：</th>
+			            		<td>${orderAuditInfo.creator }</td>
+			            		<th>审核时间：</th>
+			            		<td class="time">${orderAuditInfo.createTime }</td>
+			            	</tr>
+			            </table>
+			            </div>
+	            </c:if>
+	            <!-- 工单审核信息end -->
+	         </div>
+         </div>
+    </div>
+    <!-- 登记单图片 -->
+    <c:if test="${!empty orderAttachment }">
+	    <div id="showPic_3" class="showPic">
+	    	<iframe frameborder="0"></iframe>
+	    </div>
+    </c:if>
+    <!-- 工单处理图片 -->
+    <c:if test="${!empty workOrderProcess }">
+	    <div id="showPic_1_2" class="showPic" style="margin-left: -1px;">
+	    	<div id="_left">
+	    		<iframe frameborder="0"></iframe>
+	    	</div>
+	    	<div id="_right">
+	    		<iframe frameborder="0" style="border-left: 1px solid;"></iframe>
+	    	</div>
+	    </div>
+    </c:if>
+</body>
+</html>

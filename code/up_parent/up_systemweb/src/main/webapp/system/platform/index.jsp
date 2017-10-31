@@ -1,0 +1,135 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>渝西水务生产综合管理平台</title>
+	
+	<link rel="stylesheet" type="text/css" href="${path}/system/platform/css/style.css">
+	
+	<link href="${path}/libs/css/import_basic.css" rel="stylesheet" type="text/css"/>
+	<link href="${path}/libs/skins/blue/style.css" rel="stylesheet" type="text/css" id="theme"  themeColor="blue" positionTarget="positionContent"/>
+	<link href="${path}/system/layout/skin/style.css" rel="stylesheet" type="text/css" id="skin"  skinPath="system/layout/skin/"/>
+	
+	<script type="text/javascript" src="${path}/libs/js/jquery.js"></script>
+	<script type="text/javascript" src="${path}/libs/js/language/cn.js"></script>
+	<script type="text/javascript" src="${path}/libs/js/main.js"></script>
+	<script type="text/javascript" src="${path}/system/platform/js/basic.js"></script>
+	<script type="text/javascript" src="${path}/system/login/logout.js"></script>
+	
+	<!--引入弹窗组件start-->
+	<script type="text/javascript" src="${path}/libs/js/popup/drag.js"></script>
+	<script type="text/javascript" src="${path}/libs/js/popup/dialog.js"></script>
+	<!--引入弹窗组件end-->
+	<script type="text/javascript">
+		jQuery(function(){
+			history.pushState(null, null, document.URL);
+		    window.addEventListener('popstate', function () {
+		        history.pushState(null, null, document.URL);
+		    });
+		});
+	</script>
+</head>
+<body>
+	<div class="index-max">
+		<!-- 头部 -->
+		<div class="header">
+			<div class="logo-title"><span>渝西水务生产综合管理平台</span></div>
+			<div class="operation-basic">
+				<ul>
+					<c:if test="${_system}">
+						<li>
+							<a href="javascript:;" class="icon_system" onclick='locationHref("${up_systemweb_index}")'>
+								<span>后台管理</span>
+							</a>
+						</li>
+					</c:if>
+					<li>
+						<a href="javascript:;" class="icon_exit_1" onclick='top.Dialog.confirm("确定要退出系统吗",function(){logout();});'>
+							<span>退出</span>
+						</a>
+					</li>
+				</ul>
+				
+			</div>
+		</div>
+		
+		<!-- 导航部分	 -->
+		<div class="nav">
+			<span>${userName }</span>
+			<span>【${orgName }】</span>
+			<span>
+				【今天是
+				<script>
+					var weekDayLabels = new Array("星期日","星期一","星期二","星期三","星期四","星期五","星期六");
+					var now = new Date();
+				    var year=now.getFullYear();
+					var month=now.getMonth()+1;
+					var day=now.getDate();
+				    var currentime = year+"年"+month+"月"+day+"日 "+weekDayLabels[now.getDay()];
+					document.write(currentime);
+				</script>】
+			</span>
+		</div>
+
+		<!-- 主体部分 -->
+		<div class="content">			
+			<div class="main">
+				<c:forEach items="${_owned_pc_systemcodes_el }" var="_systemcode">
+					<c:import url="subsystem/${_systemcode.systemcode }.jsp"></c:import>
+				</c:forEach>
+			</div>
+		</div>
+
+		<!-- 底部 -->
+		<div class="copyright" style="float: right;">©<script>document.write(new Date().getFullYear())</script>&nbsp;
+			<span>重庆远通电子技术开发有限公司</span>
+			<span class="about" style="float: right; margin-right: 12px; margin-top: 2px; cursor: pointer;"><img src="../system/platform/img/about.png" style="width: 18px; height: 18px;"><span style="vertical-align: text-bottom;">关于</span></span>
+		</div>
+	</div>	
+</body>
+<script type="text/javascript">
+var _owned_pc_systemcodes = $.parseJSON('${_owned_pc_systemcodes}'); //@required
+var tokenId = "${tokenId}";
+var path = "${path}";
+function locationHref(url){
+	location.href = url + "?tokenId=" + tokenId + "&_platform=true";
+}
+$(document).ready(function(){
+	// 获取窗口宽度
+	if (window.innerWidth)
+	winWidth = window.innerWidth;
+	else if ((document.body) && (document.body.clientWidth))
+	winWidth = document.body.clientWidth;
+	
+	var wd = winWidth/3-80;
+	$("._subsystem").width("30%");
+	
+	/* 弹出关于页面 */
+	$(".about").click(function(){
+		var content = "<div style='height: 136px; overflow-y: auto; word-break: break-all; margin-top:4px;'>"
+					+ "<ol>"
+					+ "<li style='margin:2px;'>系统平台化集成。</li>"
+					+ "<li style='margin:2px;'>对抢维修系统进行重新设计开发。</li>"
+					+ "<li style='margin:2px;'>对巡检系统进行升级，提升系统可用性和易用性。</li>"
+					+ "<li style='margin:2px;'>对管网智能分析系统进行升级，提升系统可用性和易用性。</li>"
+					+ "</ol>"
+					+ "</div>";
+		var html = "<div style='font-family: Microsoft YaHei; margin:6px -4px 0px 6px; line-height: 1.8;'>"
+				 	+ "管网管理平台 1.0"
+					+ "<br>远通电子 版权所有"
+					+ "<br>Copyright© " + new Date().getFullYear() + " 重庆远通电子技术开发有限公司"
+					+ content
+					+ "</div>";
+		var diag = new top.Dialog();
+		diag.Title = "关于";
+		diag.InnerHtml = html;
+		diag.Width = 360;
+		diag.Height= 200;
+		diag.show();
+	});
+});
+</script>
+</html>

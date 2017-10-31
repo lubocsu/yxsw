@@ -1,0 +1,170 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.entity.BizTGgSbssAttachBase;
+import com.upsoft.yxsw.mobile.bean.execute.CheckItemBean;
+
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：BizTGgSbssAttachBaseService.java<br>
+* 摘要：设备设施与检查项关联关系表<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：胡毅<br>
+* 完成日期：2017年9月11日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月11日<br>
+ */
+public interface BizTGgSbssAttachBaseService  extends BaseService {
+
+	/**
+	 * 根据检查项ID获取关联的设备设施关联关系数据，去重，全部字段
+	 * @date 2017年9月11日 上午11:29:14
+	 * @author 胡毅
+	 * @param checkItemIdList
+	 * @return
+	 */
+	public List<BizTGgSbssAttachBase> getAttachInfoByCheckItemIds(List<String> checkItemCodeList);
+    /**
+     * 通过厂所Id来查找对应的设备
+     * @date 2017年9月13日 下午4:38:57
+     * @author 杨磊
+     * @param params
+     */
+	//public	 List<Map<String, Object>>  queryByTreeId(Map<String, Object> params,String orgId);
+	//public	 List<Map<String, Object>>  queryByTreeId(Map<String, Object> params);
+	public List<Map<String, Object>> queryByTreeId(Map<String, Object> params);
+	/**
+	 * 获取选了的检查项
+	 * @date 2017年9月16日 上午9:29:49
+	 * @author 杨磊
+	 * @param pars
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getWarningListAndCount(Map<String, Object> pars, PageBean bean);
+	/**
+	 * 删除一个通过检查项id
+	 * @date 2017年9月16日 上午9:30:20
+	 * @author 杨磊
+	 * @param id
+	 * @return
+	 */
+	public Boolean deleteByCheckId(String id);
+	/**
+	 * 获取未选取的的检查项
+	 * @date 2017年9月16日 上午9:31:14
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getUnCheckListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 查找是否存在
+	 * @date 2017年9月16日 下午5:08:48
+	 * @author 杨磊
+	 * @param sbId
+	 * @return
+	 */
+	public Boolean findOneBySbId(String sbId);
+	/**
+	 * 批量删除
+	 * @date 2017年9月18日 下午2:42:48
+	 * @author 杨磊
+	 * @param ids
+	 */
+	public void deleteALL(String ids);
+	
+	/**
+	 * 过滤通过输入框的值
+	 * @date 2017年9月18日 下午7:11:15
+	 * @author 杨磊
+	 * @param input
+	 * @param params
+	 * @return
+	 */
+	public List<Map<String, Object>> queryByTreeId(String input, Map<String, Object> params);
+	
+	/**
+	 * 获取设施与检查项的关系
+	 * @date 2017年9月19日 上午9:20:29
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getSsListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 获取设施与检查项未关联的
+	 * @date 2017年9月19日 上午9:57:06
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getNoCheckListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 获取设施与为未关联的安全定义
+	 * @date 2017年9月19日 下午2:12:05
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getNoSqfeListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 获取设施与为关联的安全定义
+	 * @date 2017年9月19日 下午2:52:46
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getSsSafeListAndCount(Map<String, Object> par, PageBean bean);
+	
+	
+	/**
+	 * 获取设备与安全定义
+	 * @date 2017年9月19日 下午4:04:32
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getSbSafeListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 设备与安全定义没关联
+	 * @date 2017年9月19日 下午4:20:28
+	 * @author 杨磊
+	 * @param par
+	 * @param bean
+	 * @return
+	 */
+	public Map<String, Object> getNoSbSqfeListAndCount(Map<String, Object> par, PageBean bean);
+	public List<Map<String, Object>> queryByTreeId1(String input, Map<String, Object> params);
+	
+	/**
+	 * 根据设备设施记录ID获取已关联的检查项信息和检查项结果
+	 * @date 2017年9月24日 下午4:29:50
+	 * @author 胡毅
+	 * @param taskItemSbssId
+	 */
+	List<CheckItemBean> getAttachInfoByTaskItemSbssId(String taskItemSbssId);
+	
+	
+}

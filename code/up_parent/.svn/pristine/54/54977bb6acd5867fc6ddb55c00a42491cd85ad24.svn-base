@@ -1,0 +1,285 @@
+package com.upsoft.login.controller;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.thoughtworks.xstream.XStream;
+import com.upsoft.login.constant.LoginConstant;
+import com.upsoft.login.listener.ConfigListener;
+import com.upsoft.login.support.webservice.PlatformWebService;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.system.constant.SystemLogConstant;
+import com.upsoft.system.entity.SysLogEntity;
+import com.upsoft.system.entity.SysUser;
+
+/**
+* Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：LoginController.java<br>
+* 摘要：登陆通用控制器<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：吴炫<br>
+* 完成日期：2015年2月11日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：吴炫<br>
+* 完成日期：2015年2月11日<br>
+ */
+@Controller
+@RequestMapping(LoginController.FORWARD_PREFIX)
+public class LoginController {
+	
+//	private static final Logger logger = Logger.getLogger(LoginController.class);
+	private static final Logger logger = Logger.getLogger("com.upsoft.controller");
+	
+	public static final String FORWARD_PREFIX = "/login";
+	
+	private static final String SYSTEM_LOGIN = "系统登录";
+	
+	/**
+	 * 登陆验证
+	 * @date 2015年1月22日 下午1:54:18
+	 * @author 吴炫
+	 * @param request
+	 * @param usercode
+	 * @param password
+	 * @return
+	 */
+	@RequestMapping("/doLogin")
+	@ResponseBody
+	public Map<String,Object> doLogin(HttpServletRequest request){
+		WSLoginInfoBean loginInfo = (WSLoginInfoBean)getLoginInfo(request);
+		loginInfo.setRequestIp(getRequestIp(request));
+		loginInfo.setLocalAddress(getLocalAddress(request));
+		
+		Map<String,Object> result = new HashMap<String, Object>();
+		String message = loginInfo.getMsg();
+		if(message == null){
+			Integer status = loginInfo.getUser().getStatus();
+			if(status==1){
+				//记录登录日志
+				saveLoginLog(loginInfo,request);
+				ServiceReceiver.saveLog(loginInfo.getUser(), request, this.getClass(),Thread.currentThread(),
+						new String[]{SystemLogConstant.OPT_MODEL_TYPE_CODE_CDGL,SystemLogConstant.OPT_MODEL_TYPE_NAME_CDGL,
+					SystemLogConstant.OPT_TYPE_CODE_ADDINFO,SystemLogConstant.OPT_TYPE_NAME_ADDINFO,"test",
+					SystemLogConstant.UP_SYSTEMWEB_CODE,SystemLogConstant.UP_SYSTEMWEB_NAME} );
+				//保存用户信息到session
+				request.getSession().setAttribute(CommonConstant.KEY_FOR_SYSUSER, loginInfo);
+				result.put("status", true);
+				result.put("tokenId", loginInfo.getTokenId());
+			}else{
+				result.put("status", false);
+				result.put("message", "该用户名不可用，请联系管理员。");
+			}
+		}else{
+			result.put("status", false);
+			result.put("message", message);
+		}
+		return result;
+	}
+	
+	/**
+	 * 私有方法，记录登录日志
+	 * @date 2015年3月25日 下午3:02:29
+	 * @author 冉恒鑫
+	 * @param loginInfo
+	 */
+	private void saveLoginLog(WSLoginInfoBean loginInfo,HttpServletRequest request){
+		SysLogEntity log = new SysLogEntity();
+		log.setUserId(loginInfo.getUser().getUserId());
+		log.setFunctionName(SYSTEM_LOGIN);
+		log.setLogType(1);
+		log.setLogTime(new Date());
+		log.setSystemCode(request.getContextPath().substring(1, request.getContextPath().length()));
+		ServiceReceiver.saveLoginLog(log);
+	}
+	
+	@RequestMapping("/logOut")
+	public String logOut(String tokenId,HttpServletRequest request){
+		logger.info("logOut:contextPath:"+request.getContextPath()+"\nloginInfoOfSession:"+request.getSession().getAttribute(CommonConstant.KEY_FOR_SYSUSER));
+		request.getSession().removeAttribute(CommonConstant.KEY_FOR_SYSUSER);
+		if(StringUtils.isBlank(tokenId)){
+			logger.error("退出时未获取到tokenId");
+		}else{
+			PlatformWebService lm = ServiceReceiver.getServicePort();
+			lm.logout(tokenId);
+		}
+		// return "redirect:".concat(LoginController.FORWARD_PREFIX).concat("/toLogin");
+		// 通过 页面直接跳到 后台系统的登录环节 2017.10.21 ，方式提示登录认证失效
+		return "/system/login/login";
+	}
+	
+	/**
+	 * 用于子系统登出清楚session用户数据
+	 * @date 2017年8月31日 下午1:43:43
+	 * @author 胡毅
+	 * @param request
+	 */
+	@RequestMapping("/logOut2")
+	@ResponseBody
+	public void logOut2(HttpServletRequest request){
+		logger.info("logOut2:contextPath:"+request.getContextPath()+"\nloginInfoOfSession:"+request.getSession().getAttribute(CommonConstant.KEY_FOR_SYSUSER));
+		request.getSession().removeAttribute(CommonConstant.KEY_FOR_SYSUSER);
+	}
+	
+	/**
+	 * 跳转到登陆界面
+	 * @date 2015年1月22日 下午1:54:00
+	 * @author 吴炫
+	 * @param message
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toLogin")
+	public String toLogin(HttpServletRequest request, HttpServletResponse response, ModelMap map) throws Exception {
+		logger.info("当前toLogin上下文环境："+request.getContextPath()+request.getServletPath()+"/?"+request.getQueryString());
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		// 1 验证session 用户数据
+		if(null!=loginInfo){
+			boolean isLogin = ServiceReceiver.checkLogin(loginInfo.getTokenId());
+			if(isLogin){
+				String trans_url = (String)request.getAttribute(LoginConstant.KEY_FOR_TRANS_URL);
+				if(StringUtils.isNotBlank(trans_url)){
+					return "redirect:".concat(trans_url);
+				}
+				// 通过若trans_url为空 ，通过_hub ,防止用户登录后直接在浏览器中输入项目路径访问 2017.09.14
+				String _hub_contextPath = WebUtils.findParameterValue(request,"_hub"); 
+				_hub_contextPath = _hub_contextPath.substring(1,_hub_contextPath.length());
+				if(StringUtils.isNotBlank(_hub_contextPath)){
+					return "redirect:".concat(ConfigListener.CasConfig.getProperty("cas.index_init_"+_hub_contextPath+"_"+request.getServerName()));
+				}
+			}else{
+				// 本上下文有认证信息，还是错的时候，说明认证失效
+ 				// request.setAttribute("tokenInvalided",LoginTipMsgConstants.LOGIN_EXPIRED);
+				request.setAttribute("Authentication", false);
+			}
+		}
+		String tokenId = WebUtils.findParameterValue(request, CommonConstant.TOKEN_ID);
+		if(StringUtils.isNotBlank(tokenId)){
+			// 适用于 服务器重启的提示
+			request.setAttribute("tokenInvalided",LoginTipMsgConstants.LOGIN_EXPIRED);
+		}
+		String loginJspPath = (String)request.getAttribute(LoginConstant.KEY_FOR_LOGIN_JSP_PATH);
+		if(StringUtils.isNoneBlank(loginJspPath)){
+			return loginJspPath;
+		}
+		// 若loginJspPath为空，则跳转到默认路径下的登录页面
+		return "/system/login/login";
+	}
+	
+	/**
+	 * 获取登录信息
+	 * @date 2015年1月28日 下午2:36:30
+	 * @author 吴炫
+	 * @param loginId
+	 * @param password
+	 * @param systemCode
+	 * @param ipAddress
+	 * @return 登录信息Bean对象
+	 */
+	private Object getLoginInfo(HttpServletRequest request){
+		String loginId = request.getParameter("usercode");
+		String password = request.getParameter("password");
+		//获取系统编码
+		String systemCode = request.getContextPath().substring(1);
+		//WS接口
+		PlatformWebService manage = ServiceReceiver.getServicePort();
+		String bean= manage.login(loginId, password, systemCode);
+		
+		XStream s = new XStream();
+		return s.fromXML(bean);
+	}
+	/**
+	 * 获取请求ip
+	 * 
+	 * @date 2017年4月20日11:12:19
+	 * @author 刘志华
+	 * @param request
+	 * @return
+	 */
+	private String getRequestIp(HttpServletRequest request) {
+		return request.getServerName();
+	}
+	
+	/**
+	 * 获取请求的业务地址 类似http://xxx.xxx.xxx.xx:8088
+	 * @date 2017年4月20日11:12:19
+	 * @author 刘志华
+	 * @param request
+	 * @return
+	 */
+	private String getLocalAddress(HttpServletRequest request) {
+		String url = request.getRequestURL().toString();
+		int index = url.indexOf("/", 7);
+		int next = url.indexOf("/", index);
+		if(next<0){
+			return url;
+		}else{
+			return url.substring(0, next);
+		}
+		
+	}
+	
+	/**
+	 * @see com.upsoft.login.controller.LoginController 获取登录用户所拥有的系统权限
+	 * @date 2017年3月6日 下午8:45:35
+	 * @author 胡毅
+	 * @param request
+	 * @param mod
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/getForwardUrl")
+	public String getForwardUrl(HttpServletRequest request,ModelMap mod){
+		// 从本上下文session中获取登录信息（这个时候的上下文是一个，跳转到这里一定是登录成功了的，session中肯定有用户数据）
+		SysUser user = SysUtils.getLoginSysUser(request);
+		List<Map<String,Object>> _owned_systemcodes = ServiceReceiver.getSystemCodeByUserIdInRole(user.getUserId());
+		List<Map<String,Object>> systemList = ServiceReceiver.getDefinedSystemCodeAndName();
+		String forwardUrl = null;
+		Map<String,String> systemMap = new HashMap<String, String>();
+		for (Map<String, Object> map : systemList) {
+			// 只查询pc端系统
+			String app = CommonConstant.SYSTEMCODE_PREFIX.APP_PREFIX.getValue();
+			if(String.valueOf(map.get("systemcode")).indexOf(app)>=0){
+				continue;
+			}
+			systemMap.put((String)map.get("systemcode"), (String)map.get("systemname"));
+		}
+		List<Object> roleSystemCode = new ArrayList<Object>();
+		for (Map<String, Object> map : _owned_systemcodes) {
+			if(systemMap.containsKey(map.get("systemcode"))){
+				roleSystemCode.add(map.get("systemcode"));
+			}
+		}
+		String REQUEST_IP = getRequestIp(request);
+		// roleSystemCode长度为0时，该用户不拥有任何系统权限，平台展示空页面
+		if(roleSystemCode.size()<=1&&roleSystemCode.size()>0){
+			String SERVICE_URL = ConfigListener.CasConfig.getProperty("cas.paltform_init_"+CommonConstant.SYSTEMCODE.UP_SYSTEM_CODE+"_"+REQUEST_IP);
+			forwardUrl = SERVICE_URL;
+		}else{
+			String SERVICE_URL = ConfigListener.CasConfig.getProperty("cas.paltform_init_"+CommonConstant.SYSTEMCODE.UP_SYSTEM_CODE+"_"+REQUEST_IP);
+			forwardUrl = SERVICE_URL;
+		}
+		return forwardUrl;
+	}
+}

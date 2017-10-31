@@ -1,0 +1,59 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.yxsw.dao.BizTXjZypTemplateItmDao;
+import com.upsoft.yxsw.entity.BizTXjZypTemplateItm;
+import com.upsoft.yxsw.service.BizTXjZypTemplateItmService;
+
+
+@Service
+public class BizTXjZypTemplateItmServiceImpl extends BaseServiceImpl implements BizTXjZypTemplateItmService {
+	
+	@Autowired
+	private BizTXjZypTemplateItmDao templateItmDao;
+	
+	/**
+	 * XXXXXXXXXXXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param bean
+	 * @param params
+	 * @return 
+	 */
+	public Map<String, Object> getList(PageBean bean, Map<String, Object> params){
+		return params;
+	
+	}
+	
+	/**
+	 * XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param order
+	 * @return 
+	 */
+	public BizTXjZypTemplateItm save(BizTXjZypTemplateItm bizTXjZypTemplateItm){
+		return bizTXjZypTemplateItm;
+	
+	}
+	
+	
+	/**
+	 * XXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param 
+	 * @return 
+	 */
+	public BizTXjZypTemplateItm getBizTXjZypTemplateItmById(String id){
+		return templateItmDao.findOne(id);
+	
+	}
+}

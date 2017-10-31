@@ -1,0 +1,241 @@
+package com.upsoft.yxsw.mobile;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTXjdItem;
+import com.upsoft.yxsw.service.MobileScanService;
+import com.upsoft.yxsw.service.PatrollingRecordsService;
+
+
+@Controller
+@RequestMapping(XjItemScanController.FORWARD_PREFIX)
+public class XjItemScanController {
+	
+	protected static final String FORWARD_PREFIX = "/mobile/xjItemScan";
+	protected static final String JSP_PR = "/WEB-INF/mobile/xjItemScan";
+	
+	@Autowired
+	private MobileScanService mobileScanService;
+	@Autowired
+	private PatrollingRecordsService patrollingRecordsService;
+	
+	/**
+	 * 根据id获取巡检点详情
+	 * 
+	 * @date 2017年9月27日 上午10:03:01
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param rfidCode
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toXjItemDetail")
+	public String toXjItemDetail(HttpServletRequest request,
+			@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="rfidCode",required=true) String rfidCode,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+				BizTXjdItem  xjItem = mobileScanService.getXjItem(rfidCode);
+				map.put("xjItem", xjItem);
+				map.put("tokenId", tokenId);
+				
+				jsp = JSP_PR+"/xjItemDetail";
+			}
+			
+		return jsp; 
+	}
+	
+	/**
+	 * 跳转到列表页面
+	 * 
+	 * @date 2017年9月27日 下午3:11:33
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param xjItemId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toXjItemList")
+	public String toXjList(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="xjItemId",required=true) String xjItemId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			map.put("pageIndex", Constant.PageStatus.PAGE_INDEX);
+			map.put("pageSize", Constant.PageStatus.PAGE_SIZE);
+			map.put("tokenId", tokenId);
+			map.put("xjItemId", xjItemId);
+			jsp = JSP_PR+"/xjItemRecordList";
+		}
+		return jsp; 
+	}
+	
+	
+	/**
+	 * 获取巡检点巡检列表
+	 * 
+	 * @date 2017年9月27日 下午5:12:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param xjItemId
+	 * @return 
+	 */
+	@RequestMapping("/getXjItemRecordList")
+	@ResponseBody
+	@SuppressWarnings("unchecked")
+	public ResultBean getXjItemRecordList(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="xjItemId",required=true) String xjItemId){
+		ResultBean result = new ResultBean();
+		result.setFlag(true);
+		result.setMessage("请求成功");
+		if(ServiceReceiver.checkLogin(tokenId)){
+			Map<String,Object> params = new HashMap<String,Object>();
+			Map<String,Object> data = new HashMap<String,Object>();
+			PageBean bean = new PageBean(request);
+			//转换页面查询数据格式
+			String jsonParam = request.getParameter("param");
+			GsonBuilder gb = new GsonBuilder();
+			Gson g = gb.create();
+			Map<String, String> paramMap = g.fromJson(jsonParam, new TypeToken<Map<String, String>>() {}.getType());
+				if(null != paramMap){
+					//获取查询开始时间
+					String starttime1 = paramMap.get("starttime1");
+					//获取查询结束时间
+					String endtime1 = paramMap.get("endtime1");
+					//获取查询名称
+					String content = paramMap.get("content");
+					if (StringUtils.isNotBlank(starttime1)) {
+						params.put("startTime1", starttime1);
+					}
+					if (StringUtils.isNotBlank(endtime1)) {
+						params.put("endTime1", endtime1);
+					}
+					if (StringUtils.isNotBlank(content)) {
+						params.put("content", content);
+					}
+				}
+				//获取数据
+				//公用是否map
+				List<Map<String,Object>> yOrN = ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue());
+				Map<String,Object> ynMap = new HashMap<String,Object>();
+				for (Map<String, Object> maps : yOrN) {
+					ynMap.put(maps.get("key").toString(), maps.get("value"));
+				}
+				Map<String, Object> xjItemRecordLists = mobileScanService.getXjItemRecordListOnMobile(xjItemId,bean, params);
+				List<Map<String, Object>> xjItemRecordList = (List<Map<String, Object>>) xjItemRecordLists.get("rows");
+				for (Map<String, Object> map2 : xjItemRecordList) {
+					
+					if(null != map2.get("have_complete")){
+						
+						map2.put("have_complete", ynMap.get(map2.get("have_complete").toString()).toString());
+					}
+					if(null != map2.get("opt_time")){
+						//转换显示格式
+						Date time = DateUtil.stringToDate(map2.get("opt_time").toString(),"yyyyMMddHHmmss");
+						String times = DateUtil.dateToString(time, "yyyy-MM-dd HH:mm:ss");
+						map2.put("opt_time", times);
+					}
+				}
+				data.put("xjItemRecordList",xjItemRecordList);
+				//获取页码
+				Map<String,Object> page = new HashMap<String,Object>();
+				page.put("pageIndex", bean.getPageIndex());
+				page.put("pageSize", bean.getPageSize());
+				data.put("page",page);
+				result.setData(data);
+		}else{
+			result.setFlag(false);
+			result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+			result.setData(new HashMap<String, Object>(){{put("login",false);}});
+		}
+		return result;
+	}
+	
+	/**
+	 * 设备巡检纪录详情
+	 * 
+	 * @date 2017年9月27日 下午7:23:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param ttaskItemSbssId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toTaskItemDetail")
+	public String toTaskItemDetail(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="taskItemId",required=true) String taskItemId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			//获取巡检点巡检详情
+			Map<String,Object> result = patrollingRecordsService.findPoint(taskItemId);
+			//公用是否map
+			List<Map<String,Object>> yOrN = ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue());
+			Map<String,Object> ynMap = new HashMap<String,Object>();
+			for (Map<String, Object> maps : yOrN) {
+				ynMap.put(maps.get("key").toString(), maps.get("value"));
+			}
+			//RFID状态
+			List<Map<String,Object>> rfidStatus = ServiceReceiver.getDictSelect(DictConstant.RFID_STATUS.getValue());
+			Map<String,Object> rfidMap = new HashMap<String,Object>();
+			for (Map<String, Object> maps : rfidStatus) {
+				rfidMap.put(maps.get("key").toString(), maps.get("value"));
+			}
+			
+			if(null != result.get("have_complete")){
+				
+				result.put("have_complete", ynMap.get(result.get("have_complete").toString()).toString());
+			}
+			if(null != result.get("rfid_confirmed_type")){
+				
+				result.put("rfid_confirmed_type", rfidMap.get(result.get("rfid_confirmed_type").toString()).toString());
+			}
+			if(null != result.get("opt_time")){
+				//转换显示格式
+				Date time = DateUtil.stringToDate(result.get("opt_time").toString(),"yyyyMMddHHmmss");
+				String times = DateUtil.dateToString(time, "yyyy-MM-dd HH:mm:ss");
+				result.put("opt_time", times);
+			}
+			map.put("result", result);
+			jsp = JSP_PR+"/xjTaskDetail";
+		}
+		return jsp; 
+	}
+}

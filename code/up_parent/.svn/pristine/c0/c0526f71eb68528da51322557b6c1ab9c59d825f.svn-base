@@ -1,0 +1,343 @@
+package com.upsoft.yxsw.mobile;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.system.entity.ComTAttachment;
+import com.upsoft.system.util.CommonUtils;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTSbBaseinfo;
+import com.upsoft.yxsw.entity.BizTSbTypesEntity;
+import com.upsoft.yxsw.entity.BizTSsBaseinfo;
+import com.upsoft.yxsw.service.BizTSbBaseinfoService;
+import com.upsoft.yxsw.service.BizTSsBaseinfoService;
+import com.upsoft.yxsw.service.EquipmentTypeService;
+import com.upsoft.yxsw.service.PatrollingRecordsService;
+import com.upsoft.yxsw.service.MobileScanService;
+
+
+@Controller
+@RequestMapping(SbssScanController.FORWARD_PREFIX)
+public class SbssScanController {
+	
+	protected static final String FORWARD_PREFIX = "/mobile/sbssScan";
+	protected static final String JSP_PR = "/WEB-INF/mobile/sbssScan";
+	
+	@Autowired
+	private MobileScanService sbssScanService;
+	@Autowired
+	public BizTSbBaseinfoService bizTSbBaseinfoService;
+	@Autowired
+	private EquipmentTypeService equipmentTypeService;
+	@Autowired
+	private PatrollingRecordsService patrollingRecordsService;
+	@Autowired
+	private BizTSsBaseinfoService bizTSsBaseinfoService;
+	
+	/**
+	 * 根据id获取设备设施详情
+	 * 
+	 * @date 2017年9月27日 上午10:03:01
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param sbssCode
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toSbssDetail")
+	public String toSbssDetail(HttpServletRequest request,
+			@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="sbssCode",required=true) String sbssCode,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			Map<String,Object>  sbSs = sbssScanService.getSbss(sbssCode);
+			
+			if(null != sbSs.get("sb_or_ss") && Constant.DETAIL_TYPE.EQUIPMENT.getValue().equals(sbSs.get("sb_or_ss").toString())){
+				
+				String id = sbSs.get("id").toString();
+				BizTSbBaseinfo bizTSbBaseinfo = bizTSbBaseinfoService.getBizTSbBaseinfoById(id);
+				//国产进口
+				List<Map<String,Object>> gcjk = ServiceReceiver.getDictSelect(DictConstant.GC_JK.getValue());
+				Map<String,Object> gcjkMap = new HashMap<String,Object>();
+				for (Map<String, Object> map2 : gcjk) {
+					gcjkMap.put(map2.get("key").toString(), map2.get("value"));
+				}
+				bizTSbBaseinfo.setGcjk(gcjkMap.get(bizTSbBaseinfo.getGcjk()).toString());
+				//设备状态
+				List<Map<String,Object>> zyStatus = ServiceReceiver.getDictSelect(DictConstant.ZY_STATUS.getValue());
+				Map<String,Object> zyMap = new HashMap<String,Object>();
+				for (Map<String, Object> map2 : zyStatus) {
+					zyMap.put(map2.get("key").toString(), map2.get("value"));
+				}
+				bizTSbBaseinfo.setZyStatus(zyMap.get(bizTSbBaseinfo.getZyStatus()).toString());
+				//是否删除
+				List<Map<String,Object>> yOrN = ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue());
+				Map<String,Object> yOrNMap = new HashMap<String,Object>();
+				for (Map<String, Object> map2 : yOrN) {
+					yOrNMap.put(map2.get("key").toString(), map2.get("value"));
+				}
+				bizTSbBaseinfo.setDelFlag(yOrNMap.get(bizTSbBaseinfo.getDelFlag()).toString());
+				//获取设备类型
+				BizTSbTypesEntity type = equipmentTypeService.findOne(BizTSbTypesEntity.class, bizTSbBaseinfo.getSbTypeId());
+				bizTSbBaseinfo.setSbTypeId(type.getName());
+				
+				map.put("bizTSbBaseinfo", bizTSbBaseinfo);
+				jsp = JSP_PR+"/sbDetail";
+				
+			}else if(null != sbSs.get("sb_or_ss") && Constant.DETAIL_TYPE.FACILITY.getValue().equals(sbSs.get("sb_or_ss").toString())){
+				
+                String ssId= sbSs.get("id").toString();
+				
+				BizTSsBaseinfo bizTSsBaseinfo = bizTSsBaseinfoService.findOne(BizTSsBaseinfo.class, ssId);
+				String byzd = bizTSsBaseinfo.getByzd();
+				if(byzd.equals("1")&&StringUtils.isNotBlank("byzd")){
+				bizTSsBaseinfo.setByzd(Constant.YES_NO.YES.getName());		
+				}
+				if(byzd.equals("0")&&StringUtils.isNotBlank("byzd")){
+					bizTSsBaseinfo.setByzd(Constant.YES_NO.NO.getName());		
+				}
+			    String parentId = bizTSsBaseinfo.getParentId();
+			    if(null!=parentId&&StringUtils.isNotBlank(parentId)){
+			    BizTSsBaseinfo pentity = bizTSsBaseinfoService.findOne(BizTSsBaseinfo.class, parentId);
+			    String pname = pentity.getName();
+				
+				map.put("pname", pname);
+			    }
+			
+			    map.put("ss", bizTSsBaseinfo);
+			    
+				
+				jsp=JSP_PR+"/ssDetail";
+			}
+			
+		}
+		map.put("tokenId", tokenId);
+		return jsp; 
+	}
+	
+	/**
+	 * 跳转到列表页面
+	 * 
+	 * @date 2017年9月27日 下午3:11:33
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param sbId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toXjList")
+	public String toXjList(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,String status,
+			@RequestParam(value="xjId",required=true) String xjId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			map.put("pageIndex", Constant.PageStatus.PAGE_INDEX);
+			map.put("pageSize", Constant.PageStatus.PAGE_SIZE);
+			map.put("tokenId", tokenId);
+			map.put("xjId", xjId);
+			map.put("status", status);
+			jsp = JSP_PR+"/xjRecordList";
+		}
+		return jsp; 
+	}
+	
+	
+	/**
+	 * 获取设备巡检列表
+	 * 
+	 * @date 2017年9月27日 下午5:12:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param sbId
+	 * @return 
+	 */
+	@RequestMapping("/getXjRecordList")
+	@ResponseBody
+	@SuppressWarnings("unchecked")
+	public ResultBean getXjRecordList(String status,HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,@RequestParam(value="xjId",required=true) String xjId){
+		ResultBean result = new ResultBean();
+		result.setFlag(true);
+		result.setMessage("请求成功");
+		if(ServiceReceiver.checkLogin(tokenId)){
+			Map<String,Object> params = new HashMap<String,Object>();
+			Map<String,Object> data = new HashMap<String,Object>();
+			PageBean bean = new PageBean(request);
+			//转换页面查询数据格式
+			String jsonParam = request.getParameter("param");
+			GsonBuilder gb = new GsonBuilder();
+			Gson g = gb.create();
+			Map<String, String> paramMap = g.fromJson(jsonParam, new TypeToken<Map<String, String>>() {}.getType());
+				if(null != paramMap){
+					//获取查询开始时间
+					String starttime1 = paramMap.get("starttime1");
+					//获取查询结束时间
+					String endtime1 = paramMap.get("endtime1");
+					//获取查询名称
+					String content = paramMap.get("content");
+					if (StringUtils.isNotBlank(starttime1)) {
+						params.put("startTime1", starttime1);
+					}
+					if (StringUtils.isNotBlank(endtime1)) {
+						params.put("endTime1", endtime1);
+					}
+					if (StringUtils.isNotBlank(content)) {
+						params.put("content", content);
+					}
+				}
+				//获取是否已完成
+				if (StringUtils.isNotBlank(status)) {
+					params.put("status", status);
+				}
+				//获取数据
+				//公用是否map
+				List<Map<String,Object>> yOrN = ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue());
+				Map<String,Object> ynMap = new HashMap<String,Object>();
+				for (Map<String, Object> maps : yOrN) {
+					ynMap.put(maps.get("key").toString(), maps.get("value"));
+				}
+				//厂巡任务设备设施
+				List<Map<String,Object>> sbssStatus = ServiceReceiver.getDictSelect(DictConstant.SBSS_STATUS.getValue());
+				Map<String,Object> sbssSMap = new HashMap<String,Object>();
+				for (Map<String, Object> sbss : sbssStatus) {
+					sbssSMap.put(sbss.get("key").toString(), sbss.get("value"));
+				}
+				Map<String, Object> xjRecordLists = sbssScanService.getXjRecordListOnMobile(xjId,bean, params);
+				List<Map<String, Object>> xjRecordList = (List<Map<String, Object>>) xjRecordLists.get("rows");
+				for (Map<String, Object> map2 : xjRecordList) {
+					if(null != map2.get("must_scan")){
+						
+						map2.put("must_scan", ynMap.get(map2.get("must_scan").toString()).toString());
+					}
+					if(null != map2.get("have_complete")){
+						
+						map2.put("have_complete", ynMap.get(map2.get("have_complete").toString()).toString());
+					}
+					if(null != map2.get("ewm_confirmed_type")){
+						
+						map2.put("ewm_confirmed_type", sbssSMap.get(map2.get("ewm_confirmed_type").toString()).toString());
+					}
+					if(null != map2.get("opt_time")){
+						//转换显示格式
+						Date time = DateUtil.stringToDate(map2.get("opt_time").toString(),"yyyyMMddHHmmss");
+						String times = DateUtil.dateToString(time, "yyyy-MM-dd HH:mm:ss");
+						map2.put("opt_time", times);
+					}
+				}
+				data.put("xjRecordList",xjRecordList);
+				//获取页码
+				Map<String,Object> page = new HashMap<String,Object>();
+				page.put("pageIndex", bean.getPageIndex());
+				page.put("pageSize", bean.getPageSize());
+				data.put("page",page);
+				result.setData(data);
+		}else{
+			result.setFlag(false);
+			result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+			result.setData(new HashMap<String, Object>(){{put("login",false);}});
+		}
+		return result;
+	}
+	
+	/**
+	 * 巡检纪录详情
+	 * 
+	 * @date 2017年9月27日 下午7:23:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param ttaskItemSbssId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toXjDetail")
+	public String toXjDetail(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="ttaskItemSbssId",required=true) String ttaskItemSbssId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			//获取设施设备检查详情
+			List<Map<String,Object>> list = patrollingRecordsService.getSbssInfo(ttaskItemSbssId);
+			//获取设施设备处理流程
+			List<Map<String,Object>> dealFlow = patrollingRecordsService.getDealFlow(ttaskItemSbssId);
+			//获取附件
+			List<ComTAttachment> attachments = patrollingRecordsService.getAttachmentList(ttaskItemSbssId);
+			List<ComTAttachment> imgs = new ArrayList<ComTAttachment>();
+			List<ComTAttachment> videos = new ArrayList<ComTAttachment>();
+			if(null != attachments && attachments.size()>0){
+				for (ComTAttachment comTAttachment : attachments) {
+					String type = comTAttachment.getAttachmentSuffix();
+					if(type.equals("png") || type.equals("jpg")){
+						imgs.add(comTAttachment);
+					}else{
+						videos.add(comTAttachment);
+					}
+				}
+				map.put("imgs", imgs.get(0));
+				map.put("photoCount", imgs.size());
+				for(ComTAttachment video : videos){
+					String photoPath = File.separator + video.getAttachmentPath();
+					video.setAttachmentPath(photoPath.toString().replace("\\", "/"));
+				}
+				
+				map.put("videos", videos);
+				
+				StringBuilder photo = new StringBuilder();
+				boolean first = true;
+				for(ComTAttachment img : imgs){
+					String photoPath = File.separator + img.getAttachmentPath();
+				    	  if(first) {
+				    		  first=false;
+				    	  }else{
+				    		  photo.append(",");
+				    	  }
+				    	  photo.append(photoPath);
+				}
+				map.put("photoList", photo.toString().replace("\\", "/"));
+			}
+			
+			map.put("ServerURL",CommonUtils.getWebappsURLPath(request));
+			map.put("dealFlow", dealFlow);
+			map.put("list", list);
+			
+			jsp = JSP_PR+"/xjDetail";
+		}
+		return jsp; 
+	}
+	
+}

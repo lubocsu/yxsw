@@ -1,0 +1,65 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.entity.BizTXjCxTaskItemSbss;
+import com.upsoft.yxsw.mobile.bean.execute.ExecuteSBSSBean;
+import com.upsoft.yxsw.mobile.bean.task.SbssListBean;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTXjCxTaskItemSbssService.java<br>
+ * 摘要：巡检任务巡检点设备与设施<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-22 <br>
+ */
+public interface BizTXjCxTaskItemSbssService  extends BaseService {
+	
+	/**
+	 * 根据巡检点记录ID获取设备信息列表 
+	 * @date 2017年10月11日 下午8:10:30
+	 * @author 胡毅
+	 * @param taskItemId
+	 * @return List<BizTXjCxTaskItemSbss>
+	 */
+	List<BizTXjCxTaskItemSbss> getEntityListByTaskItemId(String taskItemId);
+
+	/**
+	 * 根据巡检点记录ID获取设备信息列表 
+	 * @date 2017年9月22日 下午8:57:03
+	 * @author 胡毅
+	 * @param taskItemId
+	 * @return List<SbssListBean>
+	 */
+	List<SbssListBean> getBeanListByTaskItemId(String taskItemId);
+
+	/**
+	 * 根据巡检点设备设施记录ID获取改设备设施的安全提醒，并更新扫描二维码方式和操作时间
+	 * @date 2017年9月23日 下午1:52:35
+	 * @author 胡毅
+	 * @param ttaskItemSbssId
+	 * @param confirmType
+	 * @param basePath
+	 * @return
+	 */
+	Map<String, Object> updateAndGetWarningOfThis(String ttaskItemSbssId, String confirmType, String basePath);
+
+	/**
+	 * 根据巡检任务巡检点设备与设施记录ID获取设备设施具体的检查内容
+	 * @date 2017年9月24日 下午4:03:51
+	 * @author 胡毅
+	 * @param ttaskItemSbssId
+	 * @param basePath
+	 * @return
+	 */
+	ExecuteSBSSBean getSBssExcuteInfo(String ttaskItemSbssId,String basePath);
+	
+
+}

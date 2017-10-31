@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.1.xsd
+		http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
+		http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-.xsd">
+	
+<bean id="definedSchedule" class="com.upsoft.yxsw.schedule.DefinedSchedule"></bean>
+	
+	<bean id="createXJTaskDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="definedSchedule" />
+		<property name="targetMethod" value="createXJTask" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="distributeXJTaskDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="definedSchedule" />
+		<property name="targetMethod" value="distributeXJTask" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="overTimeXJTaskDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="definedSchedule" />
+		<property name="targetMethod" value="overTimeXJTask" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="stopGgTaskDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="definedSchedule" />
+		<property name="targetMethod" value="stopGgTask" />
+		<property name="concurrent" value="false" />
+	</bean>
+	
+	<!-- 生成巡检任务 -->
+	<bean id="createXJTaskTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="createXJTaskDetail" />
+		<property name="cronExpression">
+			<value>12 3 0/1 * * ?</value>
+		</property>
+	</bean>
+	<!-- 下发巡检任务 -->
+	<bean id="distributeXJTaskTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="distributeXJTaskDetail" />
+		<property name="cronExpression">
+			<value>17 0/3 * * * ?</value>
+		</property>
+	</bean>
+	<!-- 巡检任务超期 -->
+	<bean id="overTimeXJTaskTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="overTimeXJTaskDetail" />
+		<property name="cronExpression">
+			<value>29 0/3 * * * ?</value>
+		</property>
+	</bean>
+	<!-- 将到期公告置为无效 -->
+	<bean id="stopGgTaskTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="stopGgTaskDetail" />
+		<property name="cronExpression">
+			<value>5 0/10 * * * ?</value>
+		</property>
+	</bean>
+
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="taskExecutor">
+			<bean class="org.springframework.core.task.SimpleAsyncTaskExecutor">
+				<property name="concurrencyLimit" value="30" />
+			</bean>
+		</property>
+		<property name="triggers">
+			<list>
+				<ref bean="createXJTaskTrigger" />
+				<ref bean="distributeXJTaskTrigger" />
+				<ref bean="overTimeXJTaskTrigger" />
+				<ref bean="stopGgTaskTrigger" />
+			</list>
+		</property>
+	</bean>
+</beans>

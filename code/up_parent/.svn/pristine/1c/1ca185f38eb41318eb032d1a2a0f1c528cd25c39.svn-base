@@ -1,0 +1,245 @@
+@charset "utf-8";
+/* CSS Document */
+
+* {
+	margin: 0px;
+	padding: 0px;
+	border: 0px;
+}
+li {
+	list-style-type: none;
+}
+a {
+	text-decoration: none;
+}
+body {
+	font-size: 13px;
+	color: #333;
+	font-family: "宋体";
+}
+/*--index.html begin*/
+html,body,.index-max{width: 100%;height: 100%;}
+ul{list-style-type:none;margin:0px;padding:0px;}
+table ._th {color:#09c;}
+
+.index-max .header{height: 52px;width: 100%;background: url(../images/topmenu/header_bg.png) repeat-x;}
+.header .logo-title{float: left;background: url(../images/topmenu/logo.png) no-repeat;height: 52px;line-height: 52px;width: 455px;}
+.logo-title span{margin-left: 190px;line-height: 50px;color : #fff;font: 400 18px "微软雅黑 Regular", 微软雅黑;}
+.header .operation-basic{float: right;height: 52px;}
+.operation-basic ul{height: 52px;}
+.operation-basic ul li{display: inline-block;list-style-type: none;width: 80px;height: 46px; padding-top: 6px;text-align: center; cursor: pointer;}
+.operation-basic a{text-decoration: none;display: block;width: inherit;color: #FFFFFF;}
+.operation-basic a span{color: #fff;font-size:13px;}
+.operation-basic .icon_exit{background: url(../images/topmenu/icon_exit.png) no-repeat;background-position: top center;}
+
+.index-max .nav-tool{width: 100%;height: 30px;line-height:30px;background: url(../images/topmenu/nav.png) repeat-x;}
+.index-max .nav-tool span{color: #4a769a; font: 12px "Arial Normal", Arial;margin-left: 30px;}
+
+.index-max .copyright{height: 25px;width: 100%;background: url(../images/topmenu/bg_25px.png) repeat-x;position: absolute;bottom: 0;text-align: center;color: #3f3f3f;font-family: "YaHei";}
+.hidden{display: none;}
+/*index.html end--*/
+/**左侧菜单**/
+.menu-left{height: 100% ;width: 180px; float:left;background: url(../images/leftmenu/menu-bg.png) left bottom no-repeat; 
+			background-color: #7ccdf8; overflow: auto;overflow-x: hidden; border-top: 1px solid #98f1f4;}
+.menu-left .menu-max {
+	float: left;
+	width: 100%;
+	height: auto;
+	background: #fff;
+}
+.menu-left .menu-max li {
+	float: left;
+	cursor: pointer;
+	text-indent: 5px;
+	width: 100%;
+	line-height: 30px;
+	background: url(../images/leftmenu/menu-li-bg.png) repeat-x;
+	color: #fff;
+	cursor: pointerl;
+}
+.menu-left .menu-max li a {
+	float: left;
+	width: 100%;
+	height: 30px;
+	line-height: 30px;
+	margin-left: 0;
+}
+.menu-left .menu-max li a img {
+	float: left;
+	width: 30px;
+	line-height: 30px;
+}
+.menu-left .menu-max li:hover {
+	background: url(../images/leftmenu/menu-li-selected.png) repeat-x;
+}
+
+.menu-left .menu-max li ul {
+	float: left;
+	width: 100%;
+	height: auto;
+}
+.menu-left .menu-max li ul li {
+	text-indent: 20px;
+	cursor: pointer;
+	float: left;
+	width: 100%;
+	line-height: 26px;
+	color: #1568a5;
+	background: url(../images/leftmenu/menu-li-li.png) repeat-x;
+}
+
+.menu-left .menu-max li ul li:hover {
+	color: #a88600;
+	background: url(../images/leftmenu/menu-li-li-selected.png) repeat-x;
+}
+.menu-left .menu-max li ul li a {
+	float: left;
+	width: 100%;
+	height: 26px;
+	line-height: 30px;
+	text-align: left;
+	text-indent: 2px;
+	color: #1568a5;
+}
+.menu-left .menu-max li ul li a images {
+	float: left;
+	width: 26px;
+	line-height: 26px;
+	margin-left: 10px;
+}
+/*三级菜单*/
+.menu-left .menu-max li ul li ul {
+	float: left;
+	width: 100%;
+	height: auto;
+}
+.menu-left .menu-max li ul li ul li {
+	float: left;
+	width: 100%;
+	line-height: 26px;
+	background: #C2EFFF;
+	border-bottom: 1px solid #81E3F9;
+}
+.menu-left .menu-max li ul li ul li a {
+	float: left;
+	width: 100%;
+	height: 26px;
+	line-height: 26px;
+	cursor: pointer;
+	color: #349cc2;
+}
+.menu-left .menu-max li ul li ul li a images {
+	float: left;
+	width: 26px;
+	height: 26px;
+}
+.menu-left .menu-max li ul li ul li:hover {
+	background: #E5FDFF;
+	color: #2181a4;
+}
+.menu-left .menu-max li ul li ul li.selected {
+	background: #E5FDFF;
+	color: #2181a4;
+}
+.menu-left .menu-max > li > a > .li-images {
+    float: left;
+    width: 30px;
+    height: 30px;
+    background: url(../images/leftmenu/li-hide.png) no-repeat;
+}
+
+/*菜单修改*/
+/*一级图标 begin*/
+.menu-left .menu-max > li > a > .li-images {
+	float: left;
+	width: 30px;
+	height: 30px;
+	background: url(../images/leftmenu/li-hide.png) no-repeat;
+}
+.menu-left .menu-max > li.selected > a > .li-images {
+	background: url(../images/leftmenu/li-show.png) no-repeat;
+}
+/*一级图标 end*/
+.menu-left .menu-max > li > ul > li {
+	text-indent: 20px;
+	cursor: pointer;
+	float: left;
+	width: 100%;
+	line-height: 26px;
+	color: #137ab5;
+	background: url(../images/leftmenu/left-menu-li-bg.png) repeat-x;
+	border-top: 1px solid #85afc9;
+}
+.menu-left .menu-max > li > ul > li.selected {
+	background: url(../images/leftmenu/menu-li-bg-selected.png) repeat-x;
+}
+.menu-left .menu-max > li > ul > li:hover {
+	background: url(../images/leftmenu/menu-li-bg-selected.png) repeat-x;
+}
+.menu-left .menu-max > li > ul > li.selected a {
+	color: #0e8713;
+}
+.menu-left .menu-max > li > ul > li:hover a {
+	color: #0e8713;
+}
+.menu-left .menu-max > li > ul > li .li-images {
+	float: left;
+	width: 26px;
+	height: 26px;
+	background: url(../images/leftmenu/li-images.png) no-repeat;
+	margin-left: 18px;
+}
+.menu-left .menu-max > li > ul > li.selected > a > .li-images {
+	background: url(../images/leftmenu/li-images2.png) no-repeat;
+}
+.menu-left .menu-max > li > ul > li:hover > a > .li-images {
+	background: url(../images/leftmenu/li-images2.png) no-repeat;
+}
+.menu-left .menu-max > li > ul > li > ul > li {
+	background: #fff;
+	border-bottom: 1px solid #C0E1E8;
+}
+.menu-left .menu-max > li > ul > li > ul > li .li-images {
+	float: left;
+	width: 24px;
+	height: 24px;
+	background: url(../images/leftmenu/icon-level-3rd.png) no-repeat;
+	margin-left: 30px;
+}
+.menu-left .menu-max > li > ul > li > ul > li.selected {
+	background: #D4F6F9
+}
+.menu-left .menu-max > li > ul > li > ul > li:hover {
+	background: #D4F6F9
+}
+.menu-left .menu-max > li > ul > li > ul > li.selected .li-images {
+	background: url(../images/leftmenu/icon-level-3rd.png) no-repeat;
+}
+.menu-left .menu-max > li > ul > li > ul > li:hover .li-images {
+	background: url(../images/leftmenu/icon-level-3rd.png) no-repeat;
+}
+
+/*菜单结束*/
+
+.hide {
+	display: none !important;
+}		
+			
+/*收折*/
+.index-click {width: 10px;height:100%;	background: url(../images/bs_arrbg.jpg) repeat-y;float:left;}
+.index-click .click-images {position: relative;left: 1px;top: 50%;margin-top: -58px;
+	background: url(../images/bs_left.png) no-repeat;width: 8px;height: 70px;cursor: pointer;}
+.index-click .click-images2 {
+	background: url(../images/bs_right.png) no-repeat;
+	cursor: pointer;
+}
+
+/*右侧内容主题框架*/
+/* .index-container {float:left;height:100%;background: #f1f4ff;} */  /**将内容框架改为绝对定位，通过left值来控制宽度，以防在浏览器窗口变化时内容区域出现空白问题 2017.05.22**/
+.index-iframe {
+	width: 100%;
+	height: 100%;
+	border: 0;
+	background: none;
+}
+

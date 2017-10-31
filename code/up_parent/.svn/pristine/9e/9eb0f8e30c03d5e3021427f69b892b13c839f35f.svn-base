@@ -1,0 +1,194 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.regexp.recompile;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.system.util.MapUtil;
+import com.upsoft.yxsw.dao.BizTXjZbItemDao;
+import com.upsoft.yxsw.entity.BizTGgWarningManageEntity;
+import com.upsoft.yxsw.entity.BizTXjZbItemEntity;
+import com.upsoft.yxsw.service.BizTXjZbItemService;
+
+
+@Service
+public class BizTXjZbItemServiceImpl extends BaseServiceImpl implements BizTXjZbItemService {
+	
+	 Boolean flag1=false;
+	 Boolean flag2=false;
+	 
+	private enum QueryType {
+		LIST, COUNT
+	}
+	@Autowired
+	private  BizTXjZbItemDao  bizTXjZbItemDao;
+	@Override
+	
+	public Map<String, Object> getIndListAndCount(Map<String, Object> pars, PageBean bean) {
+		Object[] querySentence = this.getQuerySentence(pars, QueryType.LIST);//查询总的数据条数
+		Map<String,Object>  indListAndCount=new  HashMap<String, Object>();
+		
+		 indListAndCount=	bizTXjZbItemDao.queryPaginationListBySql(querySentence[0].toString(),(Map<String, Object>)querySentence[1] , bean);
+		
+			
+		return  indListAndCount;
+	}
+
+	private Object[] getQuerySentence(Map<String, Object> pars, QueryType type) {
+		StringBuffer  sql=new StringBuffer();
+		Map<String, Object> parsCon = new HashMap<String, Object>();
+		
+		switch (type) {
+		case LIST:
+			sql.append("select t.cxzb_id, t.cxzb_code, t.cxzb_name, t.cxzb_jc, "
+					+ "t.cxzb_unit, t.cxzb_desc, t.cxzb_tblx, t.byzd, t.del_flag, "
+					+ "t.create_timestemp, t.creator_account, t.updator_account,"
+					+ " t.updator_name, t.update_timestemp ");
+			break;
+		case COUNT:
+			
+			sql.append("select count(1)");
+			
+			break;
+		default:
+			
+			sql.append("select count(1)");
+			break;
+		}
+		
+		sql.append(" from biz_t_xj_zb_item t  " );
+		sql.append( " where 1=1 and  t.del_flag ='0' ");
+	
+		/*if(pars.containsKey("cxzb_code")&&pars.get("cxzb_code")!=null&&StringUtils.isNotBlank(pars.get("cxzb_code").toString())){
+			
+			sql.append(" and cxzb_code like :cxzb_code");
+			parsCon.put("cxzb_code", "%"+pars.get("cxzb_code")+"%");
+			
+		}*/
+		
+       /*  if(pars.containsKey("cxzb_code")&&pars.get("cxzb_code")!=null&&StringUtils.isNotBlank(pars.get("cxzb_code").toString())&&pars.get("cxzb_name")==null
+        		 &&StringUtils.isBlank(pars.get("cxzb_name").toString())){
+			
+			sql.append(" and cxzb_code like :cxzb_code");
+			parsCon.put("cxzb_code", "%"+pars.get("cxzb_code")+"%");
+			
+		}*/
+       /*  if((pars.containsKey("cxzb_code")&&pars.get("cxzb_code")!=null&&StringUtils.isNotBlank(pars.get("cxzb_code").toString()))||
+        		 (pars.containsKey("cxzb_name")&&pars.get("cxzb_name")!=null&&StringUtils.isNotBlank(pars.get("cxzb_name").toString()))){
+			
+			sql.append(" and ( cxzb_code like :cxzb_code");
+			sql.append( " or  cxzb_name like :cxzb_name ) ");
+			parsCon.put("cxzb_code", "%"+pars.get("cxzb_code")+"%");
+			parsCon.put("cxzb_name", "%"+pars.get("cxzb_name")+"%");
+        	 
+        	 sql.append(" and (cxzb_code like '%" +pars.get("cxzb_code")+"%' or cxzb_name like '%" +pars.get("cxzb_name")+"%') " );
+			
+		 }*/
+       /*  if(pars.containsKey("cxzb_name")&&pars.get("cxzb_name")!=null&&StringUtils.isNotBlank(pars.get("cxzb_name").toString())&&pars.get("cxzb_code")==null
+        		 &&StringUtils.isBlank(pars.get("cxzb_code").toString())){
+        	 sql.append(" and cxzb_name like :cxzb_name");
+ 			parsCon.put("cxzb_name", "%"+pars.get("cxzb_name")+"%");
+ 			
+ 			
+ 		 }
+		*/
+		if(MapUtil.hasParam(pars, "cxzb_code")){
+			sql.append(" and (t.cxzb_code like '%" +pars.get("cxzb_code")+"%' or t.cxzb_name like '%" +pars.get("cxzb_code")+"%') " );
+		}
+		if(MapUtil.hasParam(pars, "cxzb_name")){
+			sql.append(" and (t.cxzb_code like '%" +pars.get("cxzb_name")+"%' or t.cxzb_name like '%" +pars.get("cxzb_name")+"%') " );
+		}
+		
+		if (pars.containsKey("cxzb_unit") && pars.get("cxzb_unit") != null
+				&& StringUtils.isNotBlank(pars.get("cxzb_unit").toString())) {
+			sql.append(" and  cxzb_unit =:cxzb_unit");
+			parsCon.put("cxzb_unit", pars.get("cxzb_unit"));
+		}
+		
+		if (pars.containsKey("cxzb_tblx") && pars.get("cxzb_tblx") != null
+				&& StringUtils.isNotBlank(pars.get("cxzb_tblx").toString())) {
+			sql.append("  and  cxzb_tblx =:cxzb_tblx");
+			parsCon.put("cxzb_tblx", pars.get("cxzb_tblx"));
+		}
+		
+		if (pars.containsKey("cxzb_id") && pars.get("cxzb_id") != null
+				&& StringUtils.isNotBlank(pars.get("cxzb_id").toString())) {
+			sql.append(" and cxzb_id =:cxzb_idCon");
+			parsCon.put("cxzb_idCon", pars.get("cxzb_id"));
+		}
+		
+		
+		return  new Object[]{sql,parsCon};
+		
+	}
+
+	@Override
+	public boolean deleteOneWarning(String cxzbId) {
+		
+		boolean flag=false;
+		if(StringUtils.isNotBlank(cxzbId)){
+			BizTXjZbItemEntity entity = bizTXjZbItemDao.findOne(cxzbId);
+			entity.setDelFlag(1);
+			bizTXjZbItemDao.save(entity);	
+		    flag=true;
+	       }
+		
+		return flag;
+	}
+
+	@Override
+	public void saveInd(BizTXjZbItemEntity bizTXjZbItemEntity, SysUser user) {
+		String userId = user.getUserId();
+		String userName = user.getUserName();
+		bizTXjZbItemEntity.setCreatorAccount(userId);
+		bizTXjZbItemEntity.setUpdatorAccount(userId);
+        bizTXjZbItemEntity.setUpdatorName(userName);
+        Date date = new Date();
+        bizTXjZbItemEntity.setCreateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+        bizTXjZbItemEntity.setUpdateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+        bizTXjZbItemDao.save(bizTXjZbItemEntity);
+	}
+
+	@Override
+	public List<Map<String, Object>> findOneByCode(String cxzb_code) {
+		String str="select distinct cxzb_code  from biz_t_xj_zb_item where cxzb_code =:cxzb_code ";
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("cxzb_code", cxzb_code);
+		List<Map<String, Object>> queryListBySql = bizTXjZbItemDao.queryListBySql(str,params );
+		return queryListBySql ;
+	}
+
+	@Override
+	public List<Map<String, Object>> getIndList(Map<String, Object> pars, int i, int j) {
+		Object[] obj = this.getQuerySentence(pars, QueryType.LIST);
+		List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
+		list = bizTXjZbItemDao .queryListBySql(obj[0].toString(), i, j,
+				(Map<String, Object>) obj[1]);
+
+		return list;
+	}
+
+	@Override
+	public Boolean checkTemplate(String id) {
+        String str="select distinct detail_id  from BIZ_T_XJ_ZYP_TEMPLATE_ITM_DET where  cxzb_id =:id ";
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("id", id );
+		List<Map<String, Object>> queryListBySql = bizTXjZbItemDao.queryListBySql(str,params );
+		if(queryListBySql.size()>0){
+			return true;
+		}
+		return false;
+	}
+
+}

@@ -1,0 +1,112 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.entity.BizTGgNoticeManage;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTGgNoticeManageService.java<br>
+ * 摘要：<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-12 <br>
+ */
+public interface BizTGgNoticeManageService  extends BaseService {
+
+	/**
+	 * 分页获取公告数据
+	 * 
+	 * @date 2017年9月12日 上午11:20:24
+	 * @author 陈涛
+	 * @param pageBean
+	 * @param params
+	 * @return 
+	 */
+	Map<String, Object> getNoticeData(PageBean pageBean,
+			Map<String, Object> params,WSLoginInfoBean loginInfo);
+
+	/**
+	 * 获取公告列表，用于查询，该列表数据不可修改内容，只可修改阅读状态，使用当前登录用户机构反向追溯父级机构查询
+	 * @date 2017年9月19日 下午4:18:11
+	 * @author 胡毅
+	 * @param user
+	 * @param contextPath 请求的上下文地址
+	 * @return
+	 */
+	Map<String,Object> getNoticeData(PageBean pageBean,SysUser user,String contextPath);
+	
+	/**
+	 * 新增公告
+	 * 
+	 * @date 2017年9月12日 下午4:53:07
+	 * @author 陈涛
+	 * @param bizTGgNoticeManage
+	 * @param user 
+	 */
+	void saveNotice(BizTGgNoticeManage bizTGgNoticeManage, WSLoginInfoBean loginInfo,String attachmentList);
+
+	/**
+	 * 单个或者批量停用公告
+	 * 
+	 * @date 2017年9月12日 下午7:42:40
+	 * @author 陈涛
+	 * @param idArray
+	 * @param user
+	 * @return 
+	 */
+	int updateNoticeByIds(List<String> idArray, SysUser user);
+
+	/**
+	 * @date 2017年9月13日 上午9:50:06
+	 * @author 陈涛
+	 * @param id
+	 * @return 
+	 */
+	BizTGgNoticeManage findOneById(String id);
+
+	/**
+	 * 更新公告
+	 * 
+	 * @date 2017年9月13日 下午3:53:26
+	 * @author 陈涛
+	 * @param bizTGgNoticeManage
+	 * @param user 
+	 */
+	void updateNotice(BizTGgNoticeManage bizTGgNoticeManage, WSLoginInfoBean loginInfo,String attachmentList,String delAttachment);
+
+	/**
+	 * 查询前两条公告，（修改：查询所有）
+	 * @param orgId
+	 * @param basePath
+	 * @return
+	 */
+	List<BizTGgNoticeManage> getTopTwoNotice(String orgId,String basePath);
+
+	/**
+	 * 获取到期的所有公告
+	 * 
+	 * @date 2017年9月28日 下午6:00:28
+	 * @author 陈涛
+	 * @return 
+	 */
+	List<BizTGgNoticeManage> getDqGgList();
+
+	/**
+	 * 将到期的公告设为无效
+	 * 
+	 * @date 2017年9月28日 下午6:06:41
+	 * @author 陈涛
+	 * @param ggList 
+	 */
+	void saveCXTaskBySchedule(List<BizTGgNoticeManage> ggList);
+}

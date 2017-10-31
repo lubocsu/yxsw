@@ -1,0 +1,230 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>作业票详情</title>
+<%@include file="/system/common/header_splitmode.jsp" %>
+<script type="text/javascript" src="${path }/libs/js/form/validationRule.js"></script>
+<script type="text/javascript" src="${path }/libs/js/form/validation.js"></script>
+<script type="text/javascript" src="${path }/js/yxsw-common.js"></script>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+
+<style type="text/css">
+	.task-audit-tableboder table tr td{
+		border: 1px solid #99ccff;
+		text-align: center;
+	}
+	.padding0{padding:0px !important;}
+	.num_input{width: 99%;height: 100%;border: none; }
+	.text_input{width: 98%;max-height: 100px; resize: none;border:none;}
+	.text_input_div{max-height: 100px;overflow: auto;}
+	textarea:hover {border:none !important;}
+	input:hover {border:none !important;}
+	textarea:focus {border:none !important;}
+	input:focus {border:none !important;}
+	.textarea[disabled] {
+    	border: none;
+    	background-color: #f1f4ff !important;
+    	color: #797979;
+	}
+</style>
+</head>
+<body style="overflow: hidden;">
+	<div class="details-max">
+		<div class="list-content">
+			<form action="#" id="cxMaketbForm">
+	    	 <div class="details-container">
+	    	 	<!-- 工作票基本信息 start -->
+	         	<div class="task-detail">
+	            	 <span class="detail-title">工作票基本信息</span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div> 
+	                 <table class="detail-list">
+	                 	<tr>
+	                 		<th>工艺预警状态：</th>
+	                 		<td>${zyp.warningName }</td>
+	                 		<th>运行要求：</th>
+	                        <td></td>
+	                 	</tr>
+	                    <tr>
+	                        <th>工作安排：</th>
+	                        <td></td>
+	                        <th>作业票负责人：</th>
+	                    	<td>${zyp.fzrName }</td>
+	                    </tr>
+	                    <tr>
+	                        <th>天气：</th>
+	                        <td colspan="3">
+	                        	<select labelField="value" valueField="key"  selWidth="253" id="weather"  selectedValue="${zyp.weatherCode }" url="${path}/platform/getSupportData" params='{"parentNodeId":"${WEATHER_DICT }"}' ></select>
+	                        </td>
+	                    </tr>
+	                 </table>
+	            </div>
+	            <!-- 工作票基本信息 end -->
+	            <!-- 作业票各个工艺段指标内容  start-->
+	            <c:forEach items="${zyp.makeTmpList }" var="makeTmp">
+	            	<div class="task-audit task-audit-tableboder">
+			            <span class="detail-title">${makeTmp.zxpTempItmName }</span>
+			            <div class="to_hide_over_content" class="text">
+			          	<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+			        </div> 
+			        <table class="detail-list">
+			        	<tr style="background-color: #c6e5fb;">
+				        	<td style="color: #006699;">指标项</td>
+				            <td style="color: #006699;">下达值</td>
+				            <td style="color: #006699;">完成量</td>
+				            <td style="color: #006699;">去除率</td>
+			            </tr>
+				        <c:forEach items="${makeTmp.makeTmpItemList }" var="makeTmpItem">
+							<tr makeTmpItemId="${makeTmpItem.makeTmpItemId }" inputType="${makeTmpItem.tblx }" class="makeTmpItemTr">
+								<td>${makeTmpItem.cxzbName }</td>
+							    <c:if test="${makeTmpItem.tblx eq TEXT_INPUT_TYPE }">
+							    	<td class="padding0" title="${makeTmpItem.jlxdz }">
+							    		<div class="text_input_div">
+							    			<textarea class="text_input" disabled="disabled">${makeTmpItem.jlxdz }</textarea>
+							    		</div>
+							    	</td>
+							    	<td class="padding0" title="${makeTmpItem.jlsbz }">
+							    		<div class="text_input_div">
+							    			<textarea class="text_input validate[length[0,1000]]" <c:if test="${ makeTmp.jlsbz eq JLSBZ}">disabled="disabled" style="background-color:#eeeeee!important"</c:if>>${makeTmpItem.jlsbz }</textarea>
+							    		</div>
+							    	</td>
+							        <td class="padding0" style="background-color: #eeeeee;"></td>       
+							    </c:if>
+							    <c:if test="${makeTmpItem.tblx eq NUM_INPUT_TYPE }">
+							    	<td class="padding0" >${makeTmpItem.jlxdz }±${makeTmpItem.jlxdzfd }</td>
+							    	<td class="padding0">
+							    		<input class="num_input <c:if test="${!(makeTmp.jlsbz eq JLSBZ)}"> validate[length[0,100],custom[onlyNumberDot2]]</c:if>" type="text" <c:if test="${ makeTmp.jlsbz eq JLSBZ}">disabled="disabled"</c:if> value="${makeTmpItem.jlsbz }" />
+							    	</td>
+							    	<td class="padding0">
+							    		<input class="num_input <c:if test="${!(makeTmp.jlqcl eq JLQCL)}"> validate[length[0,6],custom[onlyNumberDot2]]</c:if>" type="text" <c:if test="${ makeTmp.jlqcl eq JLQCL}">disabled="disabled"</c:if> value="${makeTmpItem.jlqcl }" />
+							    	</td>       
+							    </c:if>
+							     	
+							</tr>    
+				        </c:forEach>
+			         </table>	
+			       </div>
+	            </c:forEach>	
+	            <!-- 作业票各个工艺段指标内容  end-->
+	            <!-- 值班人员考核  start-->
+	            <c:if test="${!empty zyp.makePersonKhList }">
+		            <div class="task-audit task-audit-tableboder">
+				        <span class="detail-title">值班考核</span>
+				    	<div class="to_hide_over_content" class="text">
+				    	<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+				    </div> 
+				        <table class="detail-list">
+				        	<tr style="background-color: #c6e5fb;">
+					        	<td style="color: #006699;width: 10%">人员</td>
+					            <td style="color: #006699;width: 68%">考核情况</td>
+					            <td style="color: #006699;width: 10%">所扣分值</td>
+					            <td class="padding0" style="color: #006699;width: 5%">确认</td>
+				            </tr>
+					        <c:forEach items="${zyp.makePersonKhList }" var="khPerson">
+								<tr class="khPersonTr" personKhId="${khPerson.personKhId }">
+									<td bkhId="${khPerson.bkhId }">${khPerson.bkhName }</td>
+								    <td class="padding0" title="${khPerson.khDesc }"><input class="num_input validate[length[0,300]]" type="text" value="${khPerson.khDesc }" /></td>       
+								    <td class="padding0"><input class="num_input validate[length[0,6],custom[onlyNumberDot2]]" type="text" value="${khPerson.khScore }" /></td>
+								    <td class="padding0">
+								    	<input class="num_input" type="checkbox" <c:if test="${khPerson.haveConfirm eq 1 }">checked="checked"</c:if> value="1" />
+								    </td> 	
+								</tr>    
+					        </c:forEach>
+				         </table>	
+				     </div>
+	            </c:if>
+	            <!-- 值班人员考核  end-->
+	         </div>
+	         </form>
+         </div>
+    </div>
+     <!-- 底部按钮 -->
+	<div class="list-btm">
+	  	<div class="list-btm-div">
+	        <div class="div-btn-sbt">
+	        	 <button class="btm-button" type="button"  onclick="saveAndSubmit(1);"><span class="ok-icon">保存</span></button>
+	             <button class="btm-button" type="button"  onclick="saveAndSubmit(2);"><span class="ok-icon">保存并提交</span></button>
+	             <button class="btm-button" type="button"  onclick="goBack();"><span class="back-icon">返回</span></button>
+	        </div>
+	    </div>
+	</div>
+	<script type="text/javascript">
+		var cxMakeId = "${zyp.cxMakeId}";
+		jQuery(function(){
+			/***解决core中定义的td样式影响qui的td样式***/
+			jQuery(".mainCon td .selectbox").parent().css("width","auto");
+			jQuery(".mainCon td .selBtn").css("height","auto");
+			jQuery(".mainCon td .selBtn").css("width","11px");
+		});
+		// 保存
+		function saveAndSubmit(saveType){
+			var valid = $("#cxMaketbForm").validationEngine({returnIsValid: true});
+			if(!valid){
+				return;
+			}
+			// 获取所有上报值
+			var makeTmpItemTrs = jQuery(".makeTmpItemTr");
+			var makeTmpItemJSONArr = new Array();
+			jQuery.each(makeTmpItemTrs,function(i,n){
+				var makeTmpItemJSON = {};
+				makeTmpItemJSON.makeTmpItemId = jQuery(n).attr("makeTmpItemId");
+				var inputType = jQuery(n).attr("inputType");
+				if(inputType == "${TEXT_INPUT_TYPE}" ){
+					makeTmpItemJSON.jlsbz = jQuery(n).find("td:eq(2)").find("textarea").val();
+					makeTmpItemJSON.jlqcl = "";
+				}
+				if(inputType == "${NUM_INPUT_TYPE}" ){
+					makeTmpItemJSON.jlsbz = jQuery(n).find("td:eq(2)").find("input").val();
+					makeTmpItemJSON.jlqcl = jQuery(n).find("td:eq(3)").find("input").val();;
+				}
+				makeTmpItemJSONArr.push(makeTmpItemJSON);
+				
+			});
+			// 获取考核值
+			var khPersonTr  = jQuery(".khPersonTr");
+			var khPersonJSONArr = new Array();
+			jQuery.each(khPersonTr,function(i,n){
+				var khPersonJSON = {};
+				khPersonJSON.personKhId = jQuery(n).attr("personKhId");
+				khPersonJSON.bkhId = jQuery(n).find("td:eq(0)").attr("bkhId");
+				khPersonJSON.bkhName = jQuery(n).find("td:eq(0)").text();
+				khPersonJSON.khDesc = jQuery(n).find("td:eq(1)").find("input").val();
+				khPersonJSON.khScore = jQuery(n).find("td:eq(2)").find("input").val();
+				khPersonJSON.haveConfirm = jQuery(n).find("td:eq(3)").find("input:checked").val();
+				if(!khPersonJSON.haveConfirm){
+					khPersonJSON.haveConfirm = 0;
+				}
+				khPersonJSONArr.push(khPersonJSON);
+			});
+			
+			var param = {
+					"makeTmpItemJSONArr":JSON.stringify(makeTmpItemJSONArr),
+					"khPersonJSONArr":JSON.stringify(khPersonJSONArr),
+					"weather":jQuery("#weather").val(),
+					"saveType":saveType,
+					"cxMakeId":cxMakeId
+			}
+			
+			$.post("${path}/writeCxMake/doModify",param,function(result){
+				if(result.flag){
+					Dialog.alert(result.message, function(){
+						goBack();
+	                })
+				}else{
+					Dialog.alert(result.message);
+				}
+			});
+			
+		}
+		
+		function goBack(){
+		    window.location = "${path}${backURL}?queryParam="+encodeURIComponent('${queryParam }');
+		}
+	</script>
+</body>
+</html>

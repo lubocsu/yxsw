@@ -1,0 +1,408 @@
+package com.upsoft.yxsw.controller.cxMake;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.system.util.ExceptionFormatUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.controller.checkItem.BizTGgCheckItemController;
+import com.upsoft.yxsw.controller.cxMake.bean.CxMakeDetailPojo;
+import com.upsoft.yxsw.controller.cxMake.bean.CxMakePersonHkPojo;
+import com.upsoft.yxsw.controller.cxMake.bean.WriteCxMakeSBPojo;
+import com.upsoft.yxsw.entity.BizTXjZypCxMake;
+import com.upsoft.yxsw.entity.BizTXjZypCxMakeTmp;
+import com.upsoft.yxsw.entity.BizTXjZypCxMakeTmpItem;
+import com.upsoft.yxsw.entity.BizTXjZypTemplate;
+import com.upsoft.yxsw.service.BizTXjZypCxMakeService;
+import com.upsoft.yxsw.service.BizTXjZypTemplateItmDetService;
+import com.upsoft.yxsw.service.BizTXjZypTemplateItmService;
+import com.upsoft.yxsw.service.BizTXjZypTemplateService;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：WriteCxMakeController.java<br>
+* 摘要：作业票拟定<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：chengc<br>
+* 完成日期：2017年9月30日<br>
+ */
+@Controller
+@RequestMapping("/zypcxMake")
+public class ZypcxMakeController {
+	private static final String JSP_PREFIX = "/WEB-INF/jsp/zypcx_make";
+	private static final Logger logger = Logger.getLogger(ZypcxMakeController.class);
+	
+	@Autowired
+	private BizTXjZypCxMakeService bizTXjZypCxMakeService;
+	@Autowired
+	private BizTXjZypTemplateService zypTemplateService;
+	@Autowired
+	private BizTXjZypTemplateItmService zypTemplateItmService;
+	@Autowired
+	private BizTXjZypTemplateItmDetService zypTemplateItmDetService;
+	
+	@RequestMapping("/init")
+	public String init(HttpServletRequest request, ModelMap map){
+		map.addAllAttributes(WebUtils.getParametersStartingWith(request, null));
+		return JSP_PREFIX+"/make_list";
+	}
+	
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/getCxMakeList")
+	@ResponseBody
+	public Map<String,Object> getCxMakeList(HttpServletRequest request,BizTXjZypCxMake param){
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		PageBean pageBean = new PageBean(request);
+		try {
+			paramMap = BeanUtils.describe(param);
+			// 查询拟定中作业票
+			List<String> cxzypStatusList = new ArrayList<String>();
+			cxzypStatusList.add(Constant.ZYP_STAUTS.PROTOCOL.getValue());
+			paramMap.put("cxzypStatus", cxzypStatusList);
+			// 获取当前厂站作业票
+			WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+			List<String> belongWscIdList = new ArrayList<String>();
+			if(Integer.valueOf(loginInfo.getCsOrgTypeId()) < Integer.valueOf(CommonConstant.orgType.FACTORY.getKey()) ){
+				belongWscIdList = ServiceReceiver.getPermissionOrgIds(loginInfo.getUser().getUserId());
+			}else{
+				belongWscIdList.add(loginInfo.getCsOrgId());
+			}
+			paramMap.put("belongWscId",belongWscIdList);
+			
+		} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
+			logger.error("查询未填报作业票分页数据时，将参数bean转为map时出错："+e1.getMessage());
+		}
+		Map<String,Object> result = bizTXjZypCxMakeService.getCxMakeList(pageBean,paramMap);
+		return result;
+	}
+	
+	/**
+	 * 跳转到新增作业票页面
+	 * @date 2017年10月11日 下午3:27:45
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toAddMake")
+	public String toAddMake(HttpServletRequest request, ModelMap map){
+		
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		map.put("backURL", WebUtils.findParameterValue(request, "backURL"));
+		BizTXjZypTemplate temp = zypTemplateService.getTempByOrg(userLoginInfo.getCsOrgId());
+		
+		if(null == temp){	//无配置
+			map.put("flag", false);
+		}else{
+			
+			map.put("flag", true);
+			BizTXjZypCxMake lastMake = bizTXjZypCxMakeService.getCxMakeLast(userLoginInfo.getCsOrgId(), null);
+			if(null == lastMake){	//无拟定信息时应用模版
+				
+				map.put("zyp", zypTemplateService.getZypTempInfo(temp.getTempId()));
+			}else if(lastMake.getTempVersion() == temp.getTempVersion()){	//版本号一致时预置数据，直接使用以前数据
+				
+				map.put("zyp", bizTXjZypCxMakeService.getZYPDetailForPC(lastMake.getCxMakeId()));
+			}else{	//版本号不一致时对比预置
+//				map.put("zyp", zypTemplateService.getZypTempInfo(temp.getTempId()));
+				CxMakeDetailPojo zypTemp = zypTemplateService.getZypTempInfo(temp.getTempId());
+				CxMakeDetailPojo makeInfo = bizTXjZypCxMakeService.getZYPDetailForPC(lastMake.getCxMakeId());
+				
+				zypTemp.setZypDesc(makeInfo.getZypDesc());	//预置作业票说明
+				for (BizTXjZypCxMakeTmp makeTmp : zypTemp.getMakeTmpList()) {
+					for (BizTXjZypCxMakeTmp makeInfoTmp : makeInfo.getMakeTmpList()) {
+						if(makeTmp.getMakeTmpId() == makeInfoTmp.getMakeTmpId()){	//匹配指标组
+							
+							for (BizTXjZypCxMakeTmpItem item : makeTmp.getMakeTmpItemList()) {
+								for (BizTXjZypCxMakeTmpItem itemInfo : makeInfoTmp.getMakeTmpItemList()) {
+									if(item.getCxzbId() == itemInfo.getCxzbId())	//匹配指标项
+									item.setJlxdz(itemInfo.getJlxdz());
+									item.setJlxdzfd(itemInfo.getJlxdzfd());
+								}
+							}
+						}
+					}
+				}
+				map.put("zyp", zypTemp);
+			}
+		}
+		map.put("TEXT_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.TEXT.getValue());
+		map.put("NUM_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.NUM.getValue());
+		map.put("wscid", userLoginInfo.getCsOrgId());
+		
+		return JSP_PREFIX.concat("/make_add");
+	}
+	
+	/**
+	 * 验证当前日期是否已有作业票
+	 * @date 2017年10月11日 下午8:12:46
+	 * @param request
+	 * @param map
+	 * @param validateValue
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/validateZypDate")
+	public Map<String, Object> validateZypDate(HttpServletRequest request, ModelMap map, String validateValue){
+		
+		Map<String, Boolean> result = new HashMap<String, Boolean>();
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		Boolean isExists = bizTXjZypCxMakeService.ZypExists(DateUtil.stringToString(validateValue, DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FORMAT_yyyyMMdd), userLoginInfo.getCsOrgId());
+		
+		if(isExists){
+			result.put("valid", false);
+		}else{
+			result.put("valid", true);
+		}
+		Map<String, Object> resultJson = new HashMap<String, Object>();
+		resultJson.put("validateResult", result);
+		return resultJson;
+	}
+	
+	/**
+	 * 编辑页面框架
+	 * @date 2017年10月13日 上午11:02:33
+	 * @param cxMakeId
+	 * @param backURL
+	 * @param queryParam
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toEditFrame")
+	public String toEditFrame(@RequestParam(required = true)String cxMakeId,String backURL,ModelMap map){
+		map.put("backURL", backURL);
+		map.put("cxMakeId", cxMakeId);
+		return JSP_PREFIX+"/iframe_edit";
+	}
+	
+	/**
+	 * 编辑页面
+	 * @date 2017年10月13日 下午2:02:49
+	 * @param cxMakeId
+	 * @param backURL
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toEdit")
+	public String toEdit(HttpServletRequest request, @RequestParam(required = true)String cxMakeId, String backURL, ModelMap map){
+		
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		map.put("backURL", backURL);
+		CxMakeDetailPojo pojo = bizTXjZypCxMakeService.getZYPDetailForPC(cxMakeId);
+		map.put("zyp", pojo);
+		map.put("TEXT_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.TEXT.getValue());
+		map.put("NUM_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.NUM.getValue());
+		map.put("wscid", userLoginInfo.getCsOrgId());
+		return JSP_PREFIX+"/make_edit";
+	}
+	
+	/**
+	 * 查看页面框架
+	 * @date 2017年10月13日 上午11:02:33
+	 * @param cxMakeId
+	 * @param backURL
+	 * @param queryParam
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toViewFrame")
+	public String toViewFrame(@RequestParam(required = true)String cxMakeId,String backURL,ModelMap map){
+		map.put("backURL", backURL);
+		map.put("cxMakeId", cxMakeId);
+		return JSP_PREFIX+"/iframe_view";
+	}
+	
+	/**
+	 * 查看页面
+	 * @date 2017年10月13日 下午2:02:49
+	 * @param cxMakeId
+	 * @param backURL
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toView")
+	public String toView(HttpServletRequest request, @RequestParam(required = true)String cxMakeId, String backURL, ModelMap map){
+		
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		map.put("backURL", backURL);
+		CxMakeDetailPojo pojo = bizTXjZypCxMakeService.getZYPDetailForPC(cxMakeId);
+		map.put("zyp", pojo);
+		map.put("TEXT_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.TEXT.getValue());
+		map.put("NUM_INPUT_TYPE", Constant.CHECKITEM_INPUTTYPE_VALUE.NUM.getValue());
+		map.put("wscid", userLoginInfo.getCsOrgId());
+		return JSP_PREFIX+"/make_view";
+	}
+	
+	/**
+	 * 
+	 * @date 2017年10月10日 下午4:57:31
+	 * @author 胡毅
+	 * @param makeTmpItemJSONArr
+	 * @param saveType 保存类型 1 仅保存，2 保存并提交
+	 * @param cxMakeId
+	 * @param weather
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/doAddMake")
+	public ResultBean doAddMake(@RequestParam(required = true)String makeTmpItemJSONArr,
+								@RequestParam(required = true)String zypDate,
+								@RequestParam(required = true)String zypCode,
+								@RequestParam(required = true)String warning,
+								@RequestParam(required = true)String fzrId,
+								@RequestParam(required = true)String fzrName,
+								@RequestParam(required = true)String zypDesc,
+								@RequestParam(required = true)String saveType,
+								@RequestParam(required = true)String tempVersion,
+								String weather,HttpServletRequest request){
+		ResultBean result = new ResultBean();
+//		List<BizTXjZypCxMakeTmpItem> makeTmpItemJSONList = new Gson().fromJson(makeTmpItemJSONArr,  new TypeToken<List<BizTXjZypCxMakeTmpItem>>() {}.getType());
+		try {
+			WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+			List<BizTXjZypCxMakeTmp> makeTmpList = new Gson().fromJson(makeTmpItemJSONArr,  new TypeToken<List<BizTXjZypCxMakeTmp>>() {}.getType());
+			BizTXjZypCxMake zypCxMake = new BizTXjZypCxMake();
+			zypCxMake.setZypDate(DateUtil.stringToString(zypDate, DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FORMAT_yyyyMMdd) );
+			zypCxMake.setZypCode(zypCode);
+			zypCxMake.setWarning(warning);
+			zypCxMake.setFzrId(fzrId);
+			zypCxMake.setFzrName(fzrName);
+			zypCxMake.setZypDesc(zypDesc);
+			zypCxMake.setTempVersion(Long.valueOf(tempVersion));
+			zypCxMake.setTbryId(loginInfo.getUser().getUserId());
+			zypCxMake.setTbryName(loginInfo.getUser().getUserName());
+			zypCxMake.setBelongWscId(loginInfo.getCsOrgId());
+			zypCxMake.setBelongWscName(loginInfo.getCsOrgName());
+			zypCxMake.setCreatorTimestemp(DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N));
+			zypCxMake.setUpdateTimestemp(zypCxMake.getCreatorTimestemp());
+			if(StringUtils.equals(saveType, "1")){
+				zypCxMake.setCxzypStatus(Constant.ZYP_STAUTS.PROTOCOL.getValue());
+				result.setMessage("作业票拟定成功");
+			}else{
+				zypCxMake.setCxzypStatus(Constant.ZYP_STAUTS.AUDITING.getValue());
+				result.setMessage("作业票拟定成功，已提交审核");
+			}
+			bizTXjZypCxMakeService.saveZypcxMake(zypCxMake, makeTmpList, saveType, loginInfo);
+			result.setFlag(true);
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("作业票拟定时出错"+e.getMessage());
+			logger.error("作业票拟定时出错："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		return result;
+	}
+	
+	/**
+	 * 保存编辑后的作业票
+	 * @date 2017年10月13日 下午2:50:57
+	 * @param makeTmpItemJSONArr
+	 * @param saveType
+	 * @param cxMakeId
+	 * @param weather
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/doSaveEditMake")
+	public ResultBean doSaveEditMake(@RequestParam(required = true)String makeTmpItemJSONArr,
+								@RequestParam(required = true)String saveType,
+								@RequestParam(required = true)String cxMakeId,
+								@RequestParam(required = true)String warning,
+								@RequestParam(required = true)String fzrId,
+								@RequestParam(required = true)String fzrName,
+								@RequestParam(required = true)String zypDesc,
+								@RequestParam(required = true)String updateTimestemp,
+								String weather,HttpServletRequest request){
+		ResultBean result = new ResultBean();
+		try {
+			List<BizTXjZypCxMakeTmpItem> makeTmpItemJSONList = new Gson().fromJson(makeTmpItemJSONArr,  new TypeToken<List<BizTXjZypCxMakeTmpItem>>() {}.getType());
+			WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+			BizTXjZypCxMake zypCxMake = bizTXjZypCxMakeService.findOne(BizTXjZypCxMake.class, cxMakeId);
+			if(null == zypCxMake || !StringUtils.equals(zypCxMake.getUpdateTimestemp(), updateTimestemp)){
+				result.setFlag(false);
+				result.setMessage("修改失败，数据已更新，请刷新后重试");
+			}else{
+				zypCxMake.setFzrId(fzrId);
+				zypCxMake.setFzrName(fzrName);
+				zypCxMake.setWarning(warning);
+				zypCxMake.setZypDesc(zypDesc);
+				zypCxMake.setUpdatorAccount(loginInfo.getUser().getUserId());
+				zypCxMake.setUpdatorName(loginInfo.getUser().getUserName());
+				zypCxMake.setUpdateTimestemp(DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N));
+				if(StringUtils.equals(saveType, "1")){
+					zypCxMake.setCxzypStatus(Constant.ZYP_STAUTS.PROTOCOL.getValue());
+					result.setMessage("修改成功");
+				}else{
+					zypCxMake.setCxzypStatus(Constant.ZYP_STAUTS.AUDITING.getValue());
+					result.setMessage("修改并提交成功，已提交审核");
+				}
+				bizTXjZypCxMakeService.saveEditZypcxMake(zypCxMake, makeTmpItemJSONList, saveType, loginInfo);
+				result.setFlag(true);
+			}
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("作业票修改时出错"+e.getMessage());
+			logger.error("作业票修改时出错："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		return result;
+	}
+	
+	/**
+	 * 删除拟定信息
+	 * @date 2017年10月16日 下午4:02:00
+	 * @param cxMakeId
+	 * @param updateTimestemp
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/doDelMake")
+	public ResultBean doDelMake(@RequestParam(required = true)String cxMakeId,@RequestParam(required = true)String updateTimestemp,HttpServletRequest request){
+		ResultBean result = new ResultBean();
+		try {
+			BizTXjZypCxMake zypCxMake = bizTXjZypCxMakeService.findOne(BizTXjZypCxMake.class, cxMakeId);
+			if(null == zypCxMake || !StringUtils.equals(zypCxMake.getUpdateTimestemp(), updateTimestemp)){
+				result.setFlag(false);
+				result.setMessage("删除失败，数据已更新，请刷新后重试");
+			}else{
+				bizTXjZypCxMakeService.delZypCxMake(cxMakeId);
+				result.setMessage("删除成功");
+				result.setFlag(true);
+			}
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("删除作业票拟定时出错"+e.getMessage());
+			logger.error("删除作业票拟定时出错："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		return result;
+	}
+}

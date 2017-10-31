@@ -1,0 +1,52 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.entity.BizTXjZypTemplate;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTXjZypTemplateService.java<br>
+ * 摘要：<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-27 <br>
+ */
+public interface BizTXjZypTemplateService extends BaseService {
+	
+	/**
+	 * XXXXXXXXXXXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param bean
+	 * @param params
+	 * @return 
+	 */
+	public Map<String, Object> getList(PageBean bean, Map<String, Object> params);
+	
+	/**
+	 * XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param order
+	 * @return 
+	 */
+	public BizTXjZypTemplate save(BizTXjZypTemplate bizTXjZypTemplate);
+	
+	
+	/**
+	 * XXXXXXXXXXXXXXX
+	 * @date 2017-09-27
+	 * @author 
+	 * @param 
+	 * @return 
+	 */
+	public BizTXjZypTemplate getBizTXjZypTemplateById(String id);
+}

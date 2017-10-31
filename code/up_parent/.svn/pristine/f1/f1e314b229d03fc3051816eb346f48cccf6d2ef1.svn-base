@@ -1,0 +1,52 @@
+log4j.rootLogger = error,stdout,debug,err
+
+log4j.appender.stdout = org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target = System.out
+log4j.appender.stdout.layout = org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern = %d{yyyy-MM-dd HH:mm:ss} [%c:%L]-[%p]: %m%n
+
+log4j.appender.debug = org.apache.log4j.DailyRollingFileAppender
+log4j.appender.debug.Encoding=UTF-8
+log4j.appender.debug.File = D:/logs/debug/debug.log
+log4j.appender.debug.Append = true
+log4j.appender.debug.Threshold = DEBUG
+log4j.appender.debug.layout = org.apache.log4j.PatternLayout
+log4j.appender.debug.layout.ConversionPattern = %d{yyyy-MM-dd HH:mm:ss} [%c:%L]-[%p]: %m%n
+
+log4j.appender.err = org.apache.log4j.DailyRollingFileAppender
+log4j.appender.err.Encoding=UTF-8
+log4j.appender.err.File = D:/logs/error/error.log
+log4j.appender.err.Append = true
+log4j.appender.err.Threshold = ERROR
+log4j.appender.err.MaxFileSize=2048KB
+log4j.appender.err.layout = org.apache.log4j.PatternLayout
+log4j.appender.err.layout.ConversionPattern = %d{yyyy-MM-dd HH:mm:ss} [%c:%L]-[%p]: %m%n
+
+# logger for custom
+log4j.category.com.upsoft.controller=error,controller
+log4j.additivity.com.upsoft.controller=false
+log4j.appender.controller=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.controller.DatePattern='.'yyyy-MM-dd
+log4j.appender.controller.File=D:/logs/custom/controller.log
+log4j.appender.controller.MaxFileSize=5000000
+log4j.appender.controller.layout=org.apache.log4j.PatternLayout
+log4j.appender.controller.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss,SSS} [%t:%p] %c - %m%n
+
+
+log4j.category.com.upsoft.service=error,service
+log4j.additivity.com.upsoft.service=false
+log4j.appender.service=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.service.DatePattern='.'yyyy-MM-dd
+log4j.appender.service.File=D:/logs/custom/service.log
+log4j.appender.service.MaxFileSize=5000000
+log4j.appender.service.layout=org.apache.log4j.PatternLayout
+log4j.appender.service.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss,SSS} [%t:%p] %c - %m%n
+
+
+# logger for spring
+log4j.logger.org.springframework=error, org.springframework
+log4j.appender.org.springframework=org.apache.log4j.FileAppender
+log4j.appender.org.springframework.File=D:/logs/spring/spring.log
+log4j.appender.org.springframework.Encoding=utf8
+log4j.appender.org.springframework.layout=org.apache.log4j.PatternLayout
+log4j.appender.org.springframework.layout.ConversionPattern=%-d{yyyy-MM-dd HH:mm:ss} [%c]-[%p] %m%n

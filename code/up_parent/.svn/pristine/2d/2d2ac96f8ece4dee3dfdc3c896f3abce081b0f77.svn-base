@@ -1,0 +1,453 @@
+package com.upsoft.yxsw.controller;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import com.alibaba.fastjson.JSONObject;
+import com.upsoft.login.controller.BaseController;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.entity.ComTAttachment;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.service.AttachmentService;
+import com.upsoft.system.util.CommonUtils;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.dao.BizTGgWarningManageDao;
+import com.upsoft.yxsw.entity.BizTGgWarningManageEntity;
+import com.upsoft.yxsw.service.BizTGgWarningManageService;
+import com.upsoft.yxsw.service.impl.BizTGgWarningManageServiceImpl;
+
+/**
+ * 
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：SafeDefinitionController.java<br>
+* 摘要：安全提醒定义<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：杨磊<br>
+* 完成日期：2017年9月8日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：杨磊<br>
+* 完成日期：2017年9月8日<br>
+ */
+
+@Controller
+@RequestMapping(SafeDefinitionController.FORWARD_PREFIX)
+public class SafeDefinitionController  extends BaseController {
+	protected static final String  FORWARD_PREFIX="/warning";
+	protected static final String  JSP_PR="/WEB-INF/jsp/safedefinition";
+	protected Logger logger=Logger.getLogger(SafeDefinitionController.class);
+	  
+	@Autowired 
+	private BizTGgWarningManageService bizTGgWarningManageService ;
+	@Autowired
+	private  AttachmentService    attachmentService;
+	/**
+	 *跳转 安全定义主页面
+	 * @date 2017年9月8日 下午2:03:32
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/init")
+	public String init(HttpServletRequest request,ModelMap map){
+		WSLoginInfoBean sysUser = SysUtils.getLoginInfo(request);
+		String typeId = sysUser.getCsOrgTypeId();
+		map.put("typeId", typeId);
+		return JSP_PR+"/main";
+	}
+	/**
+	 * 查询结果
+	 * @date 2017年9月9日 上午9:35:49
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	
+	@RequestMapping("/getWarningList")
+	@ResponseBody
+	@SuppressWarnings("unchecked")
+	public Map<String,Object> getWarningList(HttpServletRequest  request,ModelMap map){
+		String is_important="";
+		String is_warningType="";
+		PageBean bean = new PageBean(request);
+		Map<String, Object> par = new HashMap<String, Object>();
+		// 获取页面查询参数
+		String title = WebUtils.findParameterValue(request, "title");
+		String content = WebUtils.findParameterValue(request, "content");
+		is_warningType = WebUtils.findParameterValue(request, "warningType");
+	    is_important = WebUtils.findParameterValue(request, "is_important");
+	    WSLoginInfoBean sysUser = SysUtils.getLoginInfo(request);
+	    String csOrgId = sysUser.getCsOrgId();
+	    
+	    
+		if(is_important.equals("是")){
+		is_important="1";
+		}else if(is_important.equals("否")){
+			
+			is_important="0";
+		}
+		else{
+			
+			is_important="";
+		}
+		
+		if(is_warningType.equals("设备安全")){
+			is_warningType="1";	
+		}else if(is_warningType.equals("设施安全")){
+			is_warningType="2";	
+		}else if(is_warningType.equals("巡检点安全")){
+			is_warningType="3";	
+		}else{
+			is_warningType="";
+		}
+		par.put("title", title);
+		par.put("warningType", is_warningType);
+		par.put("is_important", is_important);
+		par.put("csOrgId", csOrgId);
+		par.put("content", content);
+		// 查询结果
+
+		Map<String, Object> warningListAndCount = bizTGgWarningManageService.getWarningListAndCount(
+				par, bean);
+		List<Map<String, Object>> list = (List<Map<String, Object>>) warningListAndCount
+				.get("rows");
+		long count = (Long) warningListAndCount.get(PageBean.TOTAL);
+
+		Map<String, Object> resultData = new HashMap<String, Object>();
+		
+		resultData.put("pager.pageNo", 1);
+		resultData.put("pager.pageSize", 20);
+		resultData.put("pager.totalRows", count);
+		resultData.put("rows", list);
+		
+		return resultData;
+		
+		
+		
+		
+	}
+	/**
+	 * 跳转到添加安全提醒页面
+	 * @date 2017年9月8日 下午3:43:59
+	 * @author 杨磊
+	 * @return
+	 */
+	@RequestMapping("/toAddWarning")
+	public String toAddWarning(){
+		
+		return JSP_PR+"/addWarning";
+	}
+/**
+ * 添加安全提醒类型
+ * @date 2017年9月10日 下午5:28:16
+ * @author 杨磊
+ * @param request
+ * @param map
+ * @return
+ */
+	/**
+	 * @date 2017年9月23日 上午9:27:51
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@ResponseBody
+	@RequestMapping("/doAddWarning")
+	public Map<String, Object> doAddWarning(HttpServletRequest request, ModelMap map) {
+		String attachmentList = WebUtils.findParameterValue(request, "attachmentList");
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		String title = WebUtils.findParameterValue(request, "title");
+		String warningType = WebUtils.findParameterValue(request, "warningType");
+		String is_important = WebUtils.findParameterValue(request, "is_important");
+		if(StringUtils.isNoneBlank(warningType)){
+			if(warningType.equals("设备安全")){
+				warningType="1";
+			}else if(warningType.equals("实施安全")){
+				
+				warningType="2";
+			}else{
+				
+				warningType="3";
+			}
+			
+			
+		}
+		if(StringUtils.isNoneBlank(is_important)){
+			if(is_important.equals("是")){
+			is_important="1";
+			}else{
+				
+				is_important="0";
+			}
+				
+		}
+		String content = WebUtils.findParameterValue(request, "content");
+		BizTGgWarningManageEntity entity=new BizTGgWarningManageEntity();
+		entity.setTitle(title);
+		entity.setContent(content);
+		entity.setTxType(warningType);
+		entity.setIsImportant(Integer.parseInt(is_important));
+		entity.setDelFlag(0);
+		String timestemp = DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N);
+        entity.setCreateTimestemp(timestemp);
+        SysUser loginSysUser = SysUtils.getLoginSysUser(request);
+        WSLoginInfoBean user = SysUtils.getLoginInfo(request);
+        entity.setCreatorAccount(loginSysUser.getUserId());
+        entity.setCreatorName(loginSysUser.getUserName());
+        entity.setBelongWscId(user.getCsOrgId());
+        entity.setBelongWscName(user.getCsOrgName());
+        entity.setIsHaveRead(Integer.parseInt(is_important));
+       
+     //   attachmentService.getAttachmentList(attachmentList);
+		Map<String, Object> result = new HashMap<String, Object>();
+	
+		
+		
+		try {
+			 BizTGgWarningManageEntity entitySave = bizTGgWarningManageService.save(entity);
+			 String id = entitySave.getWarningId();
+			 attachmentService.saveAttachment(id,  attachmentList, loginInfo);
+			 result.put("message", "操作成功！");
+		} catch (Exception e) {
+			 result.put("message", "操作失败！");
+			 
+			 logger.error(e.getMessage());
+		}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * 跳转到明细页面
+	 * @date 2017年9月9日 下午4:54:52
+	 * @author 杨磊
+	 * @return
+	 */
+	@RequestMapping("/toShowWarning")
+	public String toShowWarning(@RequestParam String warningId,ModelMap map,HttpServletRequest request){
+	
+		Map<String, Object> warningInfo = new HashMap<String, Object>();
+
+		// 获取用户信息
+		if (warningId != null && StringUtils.isNotBlank(warningId)) {
+			Map<String, Object> pars = new HashMap<String, Object>();
+			pars.put("warningId", warningId);
+			List<Map<String, Object>> list = bizTGgWarningManageService
+					.getWarningList(pars, 0, 0);
+		
+			warningInfo = list.get(0);
+			
+			
+			List<ComTAttachment> attachmentList = attachmentService.getAttachmentList( warningId);
+			map.put("attachmentList", attachmentList);
+			map.put("ServerURL",CommonUtils.getWebappsURLPath(request));
+	 		
+			map.addAttribute("warning",warningInfo );
+
+		}
+	
+		return JSP_PR+"/showWarning";
+	}
+	
+	@RequestMapping("/toUpWarning")
+	public String toUpWarning(@RequestParam String warningId,ModelMap map,HttpServletRequest request){
+	
+		Map<String, Object> warningInfo = new HashMap<String, Object>();
+
+		// 获取用户信息
+		if (warningId != null && StringUtils.isNotBlank(warningId)) {
+			Map<String, Object> pars = new HashMap<String, Object>();
+			pars.put("warningId", warningId);
+			List<Map<String, Object>> list = bizTGgWarningManageService
+					.getWarningList(pars, 0, 0);
+		
+			warningInfo = list.get(0);
+			
+			map.addAttribute("warning",warningInfo );
+			List<ComTAttachment> attachmentList = attachmentService.getAttachmentList( warningId);
+			map.put("attachmentList", attachmentList);
+			map.put("ServerURL",CommonUtils.getWebappsURLPath(request));
+	 		
+
+		}
+
+		
+		
+		return JSP_PR+"/updateWarning";
+	}
+	
+	
+	
+	/**
+	 * 删除出多个用户
+	 * @param request
+	 * @param map
+	 * @param ids
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/delWarning")
+	public Map<String, Object> delWarning(HttpServletRequest request, ModelMap map) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		String ids = request.getParameter("ids");
+		bizTGgWarningManageService.deleteSplitWarnings(ids);
+		result.put("status", 1);
+		return result;
+	}
+	/**
+	 * 删除一行
+	 * @date 2017年9月9日 下午4:14:32
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	
+	@ResponseBody
+	@RequestMapping("/delOneWarning")
+	public Map<String, Object> delOneWarning(HttpServletRequest request, ModelMap map) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		String id = request.getParameter("id");
+		Boolean checkBollean = bizTGgWarningManageService.checkWarning(id);
+		if(checkBollean){
+			result.put("status", 0);
+		}else{
+		bizTGgWarningManageService.deleteOneWarning(id);
+		result.put("status", 1);
+		}
+		return result;
+	
+	}
+	/**
+	 * 修改安全提醒
+	 * @date 2017年9月10日 下午5:29:40
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/doUpWarning")
+	public Map<String, Object> doUpWarning(HttpServletRequest request, ModelMap map) {
+  
+		String warningId = WebUtils.findParameterValue(request, "warningId");
+		String title = WebUtils.findParameterValue(request, "title");
+		String warningType = WebUtils.findParameterValue(request, "warningType");
+		String is_important = WebUtils.findParameterValue(request, "is_important");
+		String attachmentList = WebUtils.findParameterValue(request, "attachmentList");
+		String delAttachment = WebUtils.findParameterValue(request, "delAttachment");
+		 
+		
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		if(StringUtils.isNotBlank(warningType)){
+			if(warningType.equals("设备安全")){
+				warningType="1";
+			}else if(warningType.equals("实施安全")){
+				
+				warningType="2";
+			}else{
+				
+				warningType="3";
+			}
+				
+		}
+		if(StringUtils.isNoneBlank(is_important)){
+			if(is_important.equals("是")){
+			is_important="1";
+			}else{
+				
+				is_important="0";
+			}
+			
+		}
+		String content = WebUtils.findParameterValue(request, "content");
+		BizTGgWarningManageEntity entity = bizTGgWarningManageService.findOne(BizTGgWarningManageEntity.class, warningId);
+		entity.setTitle(title);
+		entity.setContent(content);
+		entity.setTxType(warningType);
+		entity.setIsImportant(Integer.parseInt(is_important));
+		entity.setDelFlag(0);
+		String timestemp = DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N);
+        entity.setCreateTimestemp(timestemp);
+        SysUser loginSysUser = SysUtils.getLoginSysUser(request);
+        entity.setCreatorAccount(loginSysUser.getUserId());
+        entity.setCreatorName(loginSysUser.getUserName());
+       
+		Map<String, Object> result = new HashMap<String, Object>();
+		
+		try {
+			
+			bizTGgWarningManageService.update(entity);
+           if(StringUtils.isNotBlank(attachmentList)){
+			attachmentService.saveAttachment(warningId, attachmentList, loginInfo);
+           }
+		
+           
+           if(StringUtils.isNotBlank(delAttachment)){
+ 			  String[] strings = delAttachment.split(",");
+ 			  for (String string : strings) {
+ 				 attachmentService.delete(ComTAttachment.class,string);
+ 			}
+ 			  
+ 		  }
+
+			result.put("message", "修改成功！");	
+		} catch (Exception e) {
+		    result.put("message", "修改失败！");
+		    logger.error(e.getMessage());
+		}
+		return result;
+	}
+	
+	
+	
+	
+}

@@ -1,0 +1,55 @@
+@charset "utf-8";
+
+* {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+li {
+	list-style-type: none;
+}
+a {
+	text-decoration: none;
+}
+html {
+	width: 100%;
+	height: 100%;
+}
+body {
+	width: 100%;
+	height: 100%;
+	font-size: 12px;
+	color: #333;
+	font-family: "宋体";
+}
+/**详情页面图片展示start**/
+
+.maskStyle { overflow: hidden; }
+.album-box { position: fixed; left: 0px; top: 0px; z-index: 4; width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; background-color: #292929; }
+.mod18 { position: relative; margin: 0px auto; background: rgb(41, 41, 41) none repeat scroll 0% 0%; }
+.mod18 .btn { position: absolute; cursor: pointer; z-index: 99; font-size: 50px; font-weight: bold; }
+.mod18 .prev { left: 10px; background: transparent url("../images/image/prevBtn.png") no-repeat scroll 0% 0%; }
+.mod18 #prevTop,.mod18 #nextTop { top: 50%; width: 32px; height: 48px; }
+.mod18 #prev,.mod18 #next { bottom: 50px; width: 10px; height: 16px; }
+.mod18 #prevTop { background: transparent url("../images/image/prevBtnTop.png") no-repeat scroll 0px 0px; }
+.mod18 #nextTop { background: transparent url("../images/image/nextBtnTop.png") no-repeat scroll 0px 0px; }
+.mod18 .next { right: 10px; background: transparent url("../images/image/nextBtn.png") no-repeat scroll 0% 0%; }
+.mod18 li { float: left; }
+.mod18 .cf li { position: relative; color: #fff; }
+.mod18 .cf a { display: block; width: inherit; height: inherit; position: absolute; color: #fff; }
+.mod18 .cf li span { text-align: center; display: block; width: 486px; position: absolute; left: 75px; bottom: 0px; padding: 10px 0px; line-height: 22px; background: rgba(0, 0, 0, 0.6) none repeat scroll 0% 0%; }
+.close-div { float: left; height: 40px; width: 100%; position: relative;z-index: 999; }
+.close-div a { float: right; color: #ffffff; height: 30px; line-height: 30px; width: 35px; text-align: center; font-size: 36px; background: rgb(0, 0, 0) none repeat scroll 0% 0%; padding-bottom: 5px; }
+.mod18 .picBox { width: 100%; position: relative; overflow: hidden; background: rgb(41, 41, 41) none repeat scroll 0% 0%; }
+.mod18 .picBox ul { height: inherit; position: absolute; left: 0px; float: left; }
+.mod18 .picBox li { padding-left: 75px; padding-right: 1px; height: inherit; }
+.mod18 .picBox li img { position: absolute; bottom: 0px; }
+.mod18 .listBox { height: 100px; margin: 0px auto; position: relative; padding-top: 15px; overflow: hidden; }
+.mod18 .listBox ul { height: 88px; position: absolute; padding-left: 12px; }
+.mod18 .listBox li { width: 127px; height: 77px; cursor: pointer; position: relative; padding: 5px 0px 0px; }
+.mod18 .listBox li img { width: 108px; height: 77px; }
+.mod18 .listBox img { border: 3px solid rgb(255, 255, 255); opacity: 0.5; }
+.mod18 .listBox .on img { border: 3px solid rgb(206, 205, 204); opacity: 1; }
+.mod18 .listBox .on { background: transparent url("../images/image/img_bg.jpg") no-repeat scroll center top; }
+
+/**详情页面图片展示end**/

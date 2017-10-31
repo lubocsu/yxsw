@@ -1,0 +1,52 @@
+package com.upsoft.yxsw.service;
+
+import java.util.Map;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.mobile.bean.zyp.CxMakeDetailBean;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTXjZypCxMakeService.java<br>
+ * 摘要：作业票拟定-表头信息<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-28 <br>
+ */
+public interface BizTXjZypCxMakeService  extends BaseService {
+
+	/**
+	 *  获取今日及以后以审核通过的作业票列表
+	 * @date 2017年9月28日 下午4:46:45
+	 * @author 胡毅
+	 * @param pageBean
+	 * @param csOrgId
+	 */
+	Map<String,Object> getZYPListForAPP(PageBean pageBean, String csOrgId);
+
+	/**
+	 * 获取作业票详情
+	 * @date 2017年9月28日 下午5:57:23
+	 * @author 胡毅
+	 * @param cxMakeId
+	 * @return
+	 */
+	CxMakeDetailBean getZYPDetail(String cxMakeId);
+
+	/**
+	 * 获取作业票列表
+	 * @date 2017年9月30日 下午4:14:28
+	 * @author 胡毅
+	 * @param pageBean
+	 * @param paramMap
+	 * @return
+	 */
+	Map<String, Object> getCxMakeList(PageBean pageBean, Map<String, Object> paramMap);
+	
+
+}

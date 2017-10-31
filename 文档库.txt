@@ -1,0 +1,13 @@
+文档库用于存放按照项目过程裁剪要求输出的各类项目文档，所有文档均为受控版本。
+
+按项目全生命周期建子目录，需包含：
+01 preSale（售前）
+02 setup（项目立项）
+03 plan（项目计划）
+04 requ（需求工程）
+05 design（系统设计）
+06 test（测试）
+07 implement（项目实施）
+08 acceptance（验收）
+09 closeout（项目结项）
+10 management（项目管理）

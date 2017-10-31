@@ -1,0 +1,162 @@
+/**
+ * 设备类型js对象
+ */
+(function() {
+	var path = "";
+	var treeObj = null;
+	var selectedNode = null;
+	var equipmentTypeId = null;
+	var EquipmentType = window.EquipmentType = {
+			
+		config : function(config){
+			this.config = config;
+			path = config.path;
+			this.setTree();
+			this.initTree();
+		},
+		// 初始化树
+		initTree : function() {
+			jQuery.ajax({
+				type : 'POST',
+				url : path+'/equipmentType/getEquipmentTypeTree',
+				dataType : 'json',
+				success : function(nodes){
+					treeObj = $.fn.zTree.init(jQuery("#tree"), EquipmentType.treeSetting, nodes);
+				},
+				error : function(a){
+					Dialog.alert("设备类型目录获取失败");
+				}
+			});
+		},
+		
+		refreshTree: function(parentId){
+			treeObj.reAsyncChildNodes(null, "refresh",true);
+			equipmentTypeId=parentId;
+		},
+		
+		//新增
+		add : function(){
+			var treeNode = treeObj.getSelectedNodes()[0];
+			var id = null;
+			var name = null;
+			
+			if(null != treeNode && undefined != treeNode){
+				var outService = treeNode.out_service;
+//				var parentNode = treeNode.getParentNode();
+				if(outService == "1"){
+					Dialog.alert("该设备类型已经停用，不能新增！");
+				}else{
+					
+					var id = treeNode.id;
+					var name = treeNode.name;
+					jQuery("#equipment-detail-iframe").attr("src",path+"/equipmentType/addEquipmentType?sbTypeId="+id + "&name=" + name);
+				}
+			}else{
+				 id = "";
+				 name = "";
+				 jQuery("#equipment-detail-iframe").attr("src",path+"/equipmentType/addEquipmentType?sbTypeId="+id + "&name=" + name);
+			}
+			
+		},
+		// 停用
+		del : function() {
+			var treeNode = treeObj.getSelectedNodes()[0];
+			if(null != treeNode && undefined != treeNode){
+				var parentNode = treeNode.getParentNode();
+				var parentId = "";
+				var remark ="";
+				if(null != parentNode && undefined != parentNode){
+					parentId = parentNode.id;
+				}
+				
+				var childrenNodes = treeNode.children;
+				if(null != childrenNodes && undefined != childrenNodes){
+					remark = "该类型下包含子类型，停用后其子类型全部停用，确定要停用吗？";
+//					Dialog.alert("请先删除子项目！",null,null,null,4);
+//					return;
+				}else{
+					remark = "确定要停用吗？";
+				}
+				Dialog.confirm(remark,function(){
+						$.ajax({
+				            cache: true,
+				            type: "POST",
+				            url: path + '/equipmentType/delEquipmentType?equipmentTypeId=' + treeNode.id,
+				            async: false,
+				            error: function(request) {
+				                alert("停用失败！");
+				            },
+				            success: function(responseText, statusText, xhr, $form){
+				            		Dialog.alert(responseText.message, function(){
+				                	//刷新数据
+				                	refresh(parentId);
+				                    //关闭窗口
+				                    Dialog.close();
+				                    var url = path+"/equipmentType/init";
+				                    location.href = url;
+				                });
+				            }
+				        });
+					});
+			}else{
+				
+				Dialog.alert("请选中要停用的记录!");
+				return;
+			}
+		},
+		
+		modify : function(){
+			var treeNode = treeObj.getSelectedNodes()[0];
+			if(null != treeNode && undefined != treeNode){
+				var id = treeNode.id;
+				jQuery("#equipment-detail-iframe").attr("src",path+"/equipmentType/toModifyEquipmentType?equipmentTypeId="+id);
+			}else{
+				
+				Dialog.alert("请选中要修改的记录!");
+				return;
+			}
+		},
+		
+		setTree : function(){
+			this.treeSetting = {
+					view: {
+						dblClickExpand: true
+					},
+					async:{
+						enable :true,
+						dataType: 'JSON',
+						url:path+'/equipmentType/getEquipmentTypeTree'
+					},
+					callback: {
+						onClick: this.zTreeSelect,
+						onAsyncSuccess:function(event, treeId, treeNode, msg){
+							treeObj.expandAll(true);
+							if(equipmentTypeId.length!=0){
+								selectedNode = treeObj.getNodeByParam("id",equipmentTypeId,null);
+							}
+							if(null!=selectedNode){
+								treeObj.selectNode(treeObj.getNodeByParam("id", selectedNode.id, null));
+							}
+						}
+					},
+			};
+		},
+		
+		zTreeSelect : function (event,treeId,treeNode) {
+			var id = treeNode.id;
+			var parentNode = treeNode.getParentNode();
+			var parentNodeName= null;
+			var parentNodeId= null
+			if(parentNode != null){
+				parentNodeName = parentNode.name;
+				parentNodeId = parentNode.id
+			}else{
+				parentNodeName = "";
+				parentNodeId= "";
+			}
+			jQuery("#equipment-detail-iframe").attr("src",path+"/equipmentType/showDetail?sbTypeId="+id + "&parentName=" + parentNodeName );
+		}
+		
+	};
+})();
+

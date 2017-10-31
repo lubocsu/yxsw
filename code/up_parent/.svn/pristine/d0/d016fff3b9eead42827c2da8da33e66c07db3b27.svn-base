@@ -1,0 +1,213 @@
+package com.upsoft.yxsw.entity;
+
+import java.io.Serializable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+import org.hibernate.annotations.GenericGenerator;
+
+import com.upsoft.system.entity.BaseEntity;
+
+@Entity
+@Table(name = "BIZ_T_XJ_ZYP_CX_MAKE_TMP_ITEM")
+public class BizTXjZypCxMakeTmpItem extends BaseEntity implements Serializable {
+
+	private static final long serialVersionUID = -4862594867700159822L;
+	/**
+	 * 数据项主键ID
+	 */
+	@Id
+	@GenericGenerator(name = "generator", strategy = "uuid.hex")
+	@GeneratedValue(generator = "generator")
+	@Column(name = "MAKE_TMP_ITEM_ID")
+	private String makeTmpItemId;
+	/**
+	 * 模板下达BIZ_T_XJ_ZYP_CX_MAKE_TMP表的主键
+	 */
+	@Column(name = "MAKE_TMP_ID")
+	private String makeTmpId;
+	/**
+	 * 巡检指标项ID
+	 */
+	@Column(name = "CXZB_ID")
+	private String cxzbId;
+	/**
+	 * 冗余：指标项名称
+	 */
+	@Column(name = "CXZB_NAME")
+	private String cxzbName;
+	/**
+	 * 冗余：简称
+	 */
+	@Column(name = "CXZB_JC")
+	private String cxzbJc;
+	/**
+	 * 下达值
+	 */
+	@Column(name = "JLXDZ")
+	private Double jlxdz;
+	/**
+	 * 浮动值
+	 */
+	@Column(name = "JLXDZFD")
+	private Double jlxdzfd;
+	/**
+	 * 完成值
+	 */
+	@Column(name = "JLSBZ")
+	private Double jlsbz;
+	/**
+	 * 出去率
+	 */
+	@Column(name = "JLQCL")
+	private Double jlqcl;
+	/**
+	 * 备用字段
+	 */
+	@Column(name = "BYZD")
+	private String byzd;
+
+	/**
+	 * 设置数据项主键ID
+	 */
+	public void setMakeTmpItemId(String makeTmpItemId) {
+		this.makeTmpItemId = makeTmpItemId;
+	}
+
+	/**
+	 * 获取数据项主键ID
+	 */
+	public String getMakeTmpItemId() {
+		return makeTmpItemId;
+	}
+
+	/**
+	 * 设置模板下达BIZ_T_XJ_ZYP_CX_MAKE_TMP表的主键
+	 */
+	public void setMakeTmpId(String makeTmpId) {
+		this.makeTmpId = makeTmpId;
+	}
+
+	/**
+	 * 获取模板下达BIZ_T_XJ_ZYP_CX_MAKE_TMP表的主键
+	 */
+	public String getMakeTmpId() {
+		return makeTmpId;
+	}
+
+	/**
+	 * 设置巡检指标项ID
+	 */
+	public void setCxzbId(String cxzbId) {
+		this.cxzbId = cxzbId;
+	}
+
+	/**
+	 * 获取巡检指标项ID
+	 */
+	public String getCxzbId() {
+		return cxzbId;
+	}
+
+	/**
+	 * 设置冗余：指标项名称
+	 */
+	public void setCxzbName(String cxzbName) {
+		this.cxzbName = cxzbName;
+	}
+
+	/**
+	 * 获取冗余：指标项名称
+	 */
+	public String getCxzbName() {
+		return cxzbName;
+	}
+
+	/**
+	 * 设置冗余：简称
+	 */
+	public void setCxzbJc(String cxzbJc) {
+		this.cxzbJc = cxzbJc;
+	}
+
+	/**
+	 * 获取冗余：简称
+	 */
+	public String getCxzbJc() {
+		return cxzbJc;
+	}
+
+	/**
+	 * 设置下达值
+	 */
+	public void setJlxdz(Double jlxdz) {
+		this.jlxdz = jlxdz;
+	}
+
+	/**
+	 * 获取下达值
+	 */
+	public Double getJlxdz() {
+		return jlxdz;
+	}
+
+	/**
+	 * 设置浮动值
+	 */
+	public void setJlxdzfd(Double jlxdzfd) {
+		this.jlxdzfd = jlxdzfd;
+	}
+
+	/**
+	 * 获取浮动值
+	 */
+	public Double getJlxdzfd() {
+		return jlxdzfd;
+	}
+
+	/**
+	 * 设置完成值
+	 */
+	public void setJlsbz(Double jlsbz) {
+		this.jlsbz = jlsbz;
+	}
+
+	/**
+	 * 获取完成值
+	 */
+	public Double getJlsbz() {
+		return jlsbz;
+	}
+
+	/**
+	 * 设置出去率
+	 */
+	public void setJlqcl(Double jlqcl) {
+		this.jlqcl = jlqcl;
+	}
+
+	/**
+	 * 获取出去率
+	 */
+	public Double getJlqcl() {
+		return jlqcl;
+	}
+
+	/**
+	 * 设置备用字段
+	 */
+	public void setByzd(String byzd) {
+		this.byzd = byzd;
+	}
+
+	/**
+	 * 获取备用字段
+	 */
+	public String getByzd() {
+		return byzd;
+	}
+}

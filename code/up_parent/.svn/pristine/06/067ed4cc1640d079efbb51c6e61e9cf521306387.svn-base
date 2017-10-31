@@ -1,0 +1,53 @@
+package com.upsoft.yxsw.controller.cxMake;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：CxMakeDetailAndProcessController.java<br>
+* 摘要：作业票流程与详情信息<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：胡毅<br>
+* 完成日期：2017年9月30日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月30日<br>
+ */
+@Controller
+@RequestMapping("/cxmake/detailAndProcess")
+public class CxMakeDetailAndProcessController {
+
+	/**
+	 * 跳转到作业票详情和流程页面
+	 * @date 2017年9月30日 下午5:41:51
+	 * @author 胡毅
+	 * @param backURL
+	 * @param queryParam
+	 * @return
+	 */
+	@RequestMapping("/init")
+	public String init(String backURL,String queryParam,ModelMap mod){
+		mod.put("backParam", queryParam);
+		mod.put("backURL", backURL);
+		return "/WEB-INF/jsp/cxMake/cxMakeDetail/iframe";
+	}
+	
+	@RequestMapping("/detail")
+	public String detail(@RequestParam(required = false)String cxMakeId,ModelMap mod){
+		mod.put("cxMakeId", cxMakeId);
+		return "/WEB-INF/jsp/cxMake/cxMakeDetail/detail";
+	}
+	
+	@RequestMapping("/process")
+	public String process(@RequestParam(required = false)String cxMakeId,ModelMap mod){
+		mod.put("process", cxMakeId);
+		return "/WEB-INF/jsp/cxMake/cxMakeDetail/process";
+	}
+}

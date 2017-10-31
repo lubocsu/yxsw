@@ -1,0 +1,267 @@
+package com.upsoft.yxsw.mobile;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.util.ExceptionFormatUtil;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTGgNoticeManage;
+import com.upsoft.yxsw.service.BizTGgMsgManageService;
+import com.upsoft.yxsw.service.BizTGgNoticeManageService;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：MobileController.java<br>
+* 摘要：APP接口:登录，注销，密码更新<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：胡毅<br>
+* 完成日期：2017年9月17日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月17日<br>
+ */
+@Controller
+@RequestMapping("/mobile")
+public class MobileController {
+	
+	private Logger logger = Logger.getLogger(MobileController.class);
+	
+	@Autowired
+	private BizTGgMsgManageService bizTGgMsgManageService;
+	@Autowired
+	private BizTGgNoticeManageService bizTGgNoticeManageService;
+	
+	
+	@RequestMapping(value = "/dologin",method=RequestMethod.POST)
+    @ResponseBody
+    public ResultBean doLogin(HttpServletRequest request){
+    	ResultBean result = new ResultBean();
+    	result.setFlag(false);
+        String imei = WebUtils.findParameterValue(request,"imei");
+        // 验证imei
+        if(StringUtils.isBlank(imei)){
+        	result.setMessage(LoginTipMsgConstants.IMIE_IS_NULL);
+        	return result;
+        }
+        List<Map<String, Object>> imeiList = ServiceReceiver.getListDataBySql("select distinct t.idcard from sys_user t  where t.idcard is not null", new HashMap<String,Object>());
+    	List<String> imeiList2 = new ArrayList<String>();
+    	for (Map<String, Object> map : imeiList) {
+    		imeiList2.add(map.get("idcard").toString());
+		}
+    	if(!imeiList2.contains(imei)){
+    		result.setMessage(LoginTipMsgConstants.ERROR_IMIE);
+    		return result;
+    	}
+    	// 验证账号信息
+    	String loginId = WebUtils.findParameterValue(request,"usercode");
+		String password = WebUtils.findParameterValue(request,"password");
+		String systemCode = request.getContextPath().substring(1);
+		WSLoginInfoBean loginInfo = ServiceReceiver.login(loginId, password, systemCode);
+		String loginMsg = loginInfo.getMsg();
+		if (StringUtils.isBlank(loginMsg)) {
+			
+			Map<String,Object> data = new HashMap<String, Object>();
+			result.setFlag(true);
+			data.put("tokenId", loginInfo.getTokenId());
+			data.put("userId", loginInfo.getUser().getUserId());
+			data.put("userName", loginInfo.getUser().getUserName());
+			result.setMessage("登录成功");
+			result.setData(data);
+		}else{
+			if (LoginTipMsgConstants.USER_NOT_EXCITE.equals(loginMsg)) {
+				result.setMessage(loginMsg);
+			}else if (LoginTipMsgConstants.ERROR_ACCOUNT_OR_PASSWORD.equals(loginMsg)) {
+				result.setMessage(loginMsg);
+			}else if(LoginTipMsgConstants.USER_INVALID.equals(loginMsg)){
+				result.setMessage(loginMsg);
+			}else if(StringUtils.equals(LoginTipMsgConstants.NOT_SYSTEM_USER,loginMsg)){
+				result.setMessage(loginMsg);
+			}else{
+				result.setMessage("请求失败");
+			}
+		}
+        return result;
+    }
+	
+	/**
+     * 手机用户注销接口
+     * @date 2015年4月18日 下午4:27:19
+     * @author 冉恒鑫
+     * @param request
+     * @return
+     */
+    @RequestMapping(value="/logout",method=RequestMethod.POST)
+    @ResponseBody
+    public ResultBean logOut(HttpServletRequest request){
+    	ResultBean result = new ResultBean();
+        try{
+            String userId = WebUtils.findParameterValue(request,"userId");
+            if(StringUtils.isBlank(userId)) {
+                result.setFlag(false);
+                result.setMessage("登出用户ID不能为空");
+            }else{
+            	SysUser userInfo = ServiceReceiver.getUser(userId);
+                if(userInfo == null){
+                	result.setFlag(false);
+                	result.setMessage("没有对应的登出用户");
+                }else{
+                    // 登出session
+                    request.getSession().removeAttribute(CommonConstant.KEY_FOR_SYSUSER);
+                    // 登出后台
+                    ServiceReceiver.logout( WebUtils.findParameterValue(request,"tokenId"));
+                    result.setFlag(true);
+                    result.setMessage("登出成功");
+                }
+            }
+            
+        }catch (Exception e){
+        	System.err.println(e.getMessage());
+            result.setFlag(false);
+            result.setMessage(e.getMessage());
+        }
+        return result;
+    }
+    
+    @RequestMapping(value="/updatePwd",method=RequestMethod.POST)
+    @ResponseBody
+    public ResultBean updatePwd(HttpServletRequest request,
+    		@RequestParam(value="tokenId",required=true) String tokenId,
+    		@RequestParam(value="oldPwd",required=true) String oldpwd,
+    		@RequestParam(value="newPwd",required=true) String newpwd){
+    	ResultBean result = new ResultBean();
+    	boolean f = ServiceReceiver.checkLogin(tokenId);
+    	if(!f){
+    		result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+    	}
+    	SysUser entity = SysUtils.getLoginSysUser(request);
+		if (null==entity) {
+			result.setFlag(false);
+			result.setMessage("密码更新失败");
+			return result;
+
+		}
+		// 验证输入的密码经MD5加密后，与原密码是否一致
+		boolean flag = ServiceReceiver.validUserPwd(entity.getLoginId(), entity.getPassword(), oldpwd);
+		if (!flag) {
+			result.setFlag(false);
+			result.setMessage("原密码错误");
+			return result;
+		}
+		entity.setPassword(newpwd);
+		boolean f2 = ServiceReceiver.saveUser(entity);
+		if (f2) {
+			result.setMessage("密码更新成功，请重新登录");
+		} else {
+			result.setMessage("webservie密码更新失败,请联系管理员");
+		}
+		
+    	return result;
+    }
+	
+    @RequestMapping(value="/dictImportant",method=RequestMethod.POST)
+    @ResponseBody
+    public ResultBean getDictImportant(@RequestParam(value="tokenId",required=true) String tokenId){
+    	ResultBean result = new ResultBean();
+    	boolean f = ServiceReceiver.checkLogin(tokenId);
+    	if(!f){
+    		result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+    	}
+    	try {
+    		List<Map<String,Object>> dictList = ServiceReceiver.getDictSelect(DictConstant.IMPORTANT_LEVEL.getValue());
+    		Map<String,Object> data = new HashMap<String,Object>();
+    		data.put("dictList", dictList);
+    		result.setData(data);
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("获取重要程度字典失败："+e.getMessage());
+			logger.error("获取重要程度字典失败："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+    	return result;
+    }
+    
+    /**
+     * 跳转到渝西APP首页，获取可查看菜单
+     * @param request
+     * @param tokenId
+     * @return
+     */
+    @RequestMapping(value="/index",method=RequestMethod.POST)
+    @ResponseBody
+    public ResultBean index(HttpServletRequest request,
+    		@RequestParam(value="tokenId",required=true) String tokenId){
+    	ResultBean result = new ResultBean();
+    	boolean f = ServiceReceiver.checkLogin(tokenId);
+    	if(!f){
+    		result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+    	}
+    	SysUser user = SysUtils.getLoginSysUser(request);
+		try {
+			// 获取可访问菜单
+			List<Map<String,Object>> menulist = ServiceReceiver.queryMenusBySysCodeAndUserId(user.getUserId(), CommonConstant.SYSTEMCODE.APP_YXSW_CODE);
+			List<Map<String,Object>> menus = new ArrayList<Map<String,Object>>();
+			String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+request.getContextPath();
+			for (Map<String, Object> menu : menulist) {
+				Map<String,Object> menumap = new HashMap<String,Object>();
+				String menuname = menu.get("name").toString();
+				menumap.put("name", menuname);
+				menumap.put("url", menu.get("url")!=null?basePath+menu.get("url"):"");
+				menumap.put("icon", menu.get("icon")!=null?basePath+menu.get("icon"):"");
+				menus.add(menumap);
+			}
+			// 获取未读消息条数
+			long unReadCount = bizTGgMsgManageService.getMyReceivedUnreadMsgCount(user.getUserId());
+			// 获取前两条公告，重要和时间倒叙排序
+			List<BizTGgNoticeManage> noticeList = bizTGgNoticeManageService.getTopTwoNotice(user.getOrgId(),basePath);
+//			List<Map<String,Object>> notices = new ArrayList<Map<String,Object>>();
+//			for (BizTGgNoticeManage notice : noticeList) {
+//				Map<String,Object> noticemap = new HashMap<String,Object>();
+//				noticemap.put("id",notice.getNoticeId());
+//				noticemap.put("title",notice.getTitle());
+//				notices.add(noticemap);
+//			}
+			
+			Map<String,Object> data = new HashMap<String,Object>();
+			data.put("menus", menus);
+			data.put("unReaMsgCount", unReadCount);
+			data.put("noticeList", noticeList);
+			result.setData(data);
+			
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("获取APP首页信息失败："+e.getMessage());
+			logger.error("获取APP首页信息失败："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+    	return result;
+    }
+}

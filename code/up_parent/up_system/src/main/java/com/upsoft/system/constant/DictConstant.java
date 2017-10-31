@@ -1,0 +1,63 @@
+/*
+ * DictConstant.java
+ * Created on 2015年1月27日 上午9:44:15
+ * Copyright (c) 重庆扬讯软件技术有限公司  All Rights Reserved.
+ * http://www.upsoft.com.cn
+ *
+ * This software is the confidential and proprietary information of UPSoft.
+ * You shall not disclose such Confidential Information and shall use it only in
+ * accordance with the terms of the license agreement you entered into with UPSoft.
+ */
+package com.upsoft.system.constant;
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：DictConstant.java<br>
+ * 摘要：系统的数据字典描述<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.1<br>
+ * 作者：蒋迪<br>
+ * 完成日期：2015年1月27日<br>
+ * -------------------------------------------------------<br>
+ * 取代版本：1.1.0<br>
+ * 原作者：蒋迪<br>
+ * 完成日期：2015年1月27日<br>
+ */
+public enum DictConstant {
+
+	LOG_OPT_TYPE("D000019"),	//日志管理操作类型
+	LOG_OPT_MODEL("D000020"), //日志管理操作模块
+	LOG_BELONG_SYSTEM("D000021"), //操作操作模块所属系统编码
+	DICT_TYPE("S000001"), //字典类型
+	DICT_LIMIT("S000002"), //字典限制级别
+	USER_TYPE ("S000003"),			//用户类型
+	ORG_TYPE ("S000004"),			//机构类型
+	MENU_TYPE ("S000005"),			//菜单类型
+	ROLE_TYPE("S000006"),         // 角色类型
+	ROLE_DEFINETYPE ("S000007"),	//角色定义类型
+	STATUS ("S000008"),				//数据有效状态
+	BTN_PERMISSIONNO("S000009"),		//按钮权限类型
+	PERMISSIONTYPE("S000010"),		//权限类型（功能权限、按钮权限）
+	USER_WORK_TYPE("D000018"),      //用户工种
+	SYS_MENU_FUNC ("U000001"),		//菜单功能类型
+	SYS_MENU_OPERATE ("U000002"),	//菜单操作类型
+	USER_WORK_POST("D000023")// 用户岗位
+
+	;
+	
+	
+	
+	
+	private String value;
+	
+	private DictConstant(String value){
+		this.value = value;
+	}
+	
+	public String getValue(){
+		return this.value;
+	}
+	
+}

@@ -1,0 +1,143 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.mobile.bean.task.TaskListBean;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTXjCxTaskService.java<br>
+ * 摘要：巡检任务service<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：hy<br>
+ * 完成日期：2017-09-21 <br>
+ */
+public interface BizTXjCxTaskService  extends BaseService {
+	
+	/**
+	 * 获取任务分页列表
+	 * @param bean
+	 * @param params
+	 * @return
+	 */
+	Map<String, Object> getList(PageBean bean, Map<String, Object> params);
+
+	/**
+	 * 获取已下发且未完成的任务列表
+	 * @param userId
+	 * @return
+	 */
+	List<TaskListBean> getMyTask(String userId);
+	
+	/**
+	 *  获取每个厂的巡检情况
+	 * @date 2017年9月21日 下午7:46:46
+	 * @author 杨磊
+	 * @param csOrgId
+	 * @param startTime
+	 * @param endTime
+	 * @return
+	 */
+
+	List<Map<String, Object>> getdate(String csOrgId, String startTime, String endTime);
+  /**
+   * 
+   * 获取厂站中的人员的任务情况
+   * @date 2017年9月22日 下午5:17:18
+   * @author 杨磊
+   * @param pars
+   * @return
+   */
+	public List<Map<String, Object>> getPerson(Map<String, Object> pars);
+
+	/**
+	 * 获取厂巡任务记录
+	 * 
+	 * @date 2017年9月23日 下午2:48:56
+	 * @author 陈涛
+	 * @param pageBean
+	 * @param params
+	 * @return 
+	 */
+	public Map<String, Object> getRecordsData(PageBean pageBean,
+			Map<String, Object> params,WSLoginInfoBean loginInfo);
+
+	/**
+	 * 开始执行任务，并更新责任人
+	 * @date 2017年9月23日 下午4:09:47
+	 * @author 胡毅
+	 * @param taskId
+	 * @param userId
+	 */
+	void updateToStartTask(String taskId, String userId);
+
+	/**
+	 * 保存超期说明
+	 * 
+	 * @date 2017年9月25日 上午10:09:12
+	 * @author 陈涛
+	 * @param cxTaskId
+	 * @param isOverTime
+	 * @param overtime_content
+	 * @param user 
+	 */
+	void updateCxTask(String cxTaskId, String isOverTime,
+			String overtime_content, WSLoginInfoBean user);
+
+	/**
+	 * 查找单个巡检任务Map
+	 * @date 2017年9月25日 上午10:34:02
+	 * @author 陈涛
+	 * @param cxTaskId
+	 * @return 
+	 */
+	Map<String, Object> findOneCxTask(String cxTaskId);
+   /**
+    * 获取设备设施巡检记录数据
+    * @date 2017年9月25日 下午1:22:46
+    * @author 杨磊
+    * @param par
+    * @param bean
+    * @return
+    */
+	Map<String, Object> getSbSsXjListAndCount(Map<String, Object> par, PageBean bean);
+	
+	/**
+	 * 下发巡检任务
+	 * @date 2017年10月11日 下午3:01:56
+	 * @author 胡毅
+	 */
+	void updateToDistributeXJTask();
+
+	/**
+	 * 修改超期任务为超期
+	 * @date 2017年10月11日 下午5:04:23
+	 * @author 胡毅
+	 */
+	void updateToOverTimeXJTask();
+
+	/**
+	 * 完成任务
+	 * @date 2017年10月11日 下午8:30:35
+	 * @author 胡毅
+	 * @param taskId
+	 */
+	void updateToCompleteTask(String taskId);
+   /**
+    * 巡检设备列表
+    * @date 2017年10月16日 下午8:29:00
+    * @author 杨磊
+    * @param sbId
+    * @return
+    */
+	Map<String, Object> getSbXj(String sbId);
+
+}

@@ -1,0 +1,172 @@
+package com.upsoft.yxsw.mobile;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import com.google.gson.Gson;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.system.util.ExceptionFormatUtil;
+import com.upsoft.system.util.FileUtil;
+import com.upsoft.yxsw.mobile.bean.execute.CheckItemBean;
+import com.upsoft.yxsw.mobile.bean.execute.ExecuteSBSSBean;
+import com.upsoft.yxsw.service.BizTXjCxTaskItemSbssRstService;
+import com.upsoft.yxsw.service.BizTXjCxTaskItemSbssService;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：ExecuteTaskController.java<br>
+* 摘要：执行任务-设备检查<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月23日<br>
+ */
+@Controller
+@RequestMapping("/mobile/execute")
+public class ExecuteTaskController {
+
+	private Logger logger = Logger.getLogger(MobileController.class);
+	
+	@Autowired
+	private BizTXjCxTaskItemSbssService bizTXjCxTaskItemSbssService;
+	@Autowired
+	private BizTXjCxTaskItemSbssRstService bizTXjCxTaskItemSbssRstService;
+	
+	/**
+	 * 根据巡检任务巡检点设备与设施记录ID获取设备设施具体的检查内容
+	 * @date 2017年9月24日 下午3:57:23
+	 * @author 胡毅
+	 * @param tokenId
+	 * @param sbssCode 用于显示
+	 * @param ttaskItemSbssId
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getSBssExcuteInfo")
+	@ResponseBody
+	public ResultBean getSBssExcuteInfo(@RequestParam(required = true)String tokenId,
+									    @RequestParam(required = true)String sbssCode,
+									    @RequestParam(required = true)String ttaskItemSbssId,
+									    HttpServletRequest request){
+		ResultBean result = new ResultBean();
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+		}
+		try {
+			String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort();
+			ExecuteSBSSBean taskList = bizTXjCxTaskItemSbssService.getSBssExcuteInfo(ttaskItemSbssId,basePath);
+			taskList.setSbssCode(sbssCode);
+			Map<String,Object> data = new HashMap<String,Object>();
+			data.put("executeDetail", taskList);
+			result.setData(data);
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("获取设备设施检查明细内容失败："+e.getMessage());
+			logger.error("获取设备设施检查明细内容失败："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * 检查项中控数据
+	 * @date 2017年10月17日 下午4:49:44
+	 * @author 胡毅
+	 * @return
+	 */
+	@RequestMapping("/getCheckItemZKData")
+	@ResponseBody
+	public ResultBean getCheckItemZKData(@RequestParam(required = true)String tokenId,
+										 @RequestParam(required = true)String sbssId,
+										 @RequestParam(required = true)String checkItemListJson){
+		ResultBean result = new ResultBean();
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+		}
+		try {
+			List<CheckItemBean> checkItemBeanList = bizTXjCxTaskItemSbssService.getCheckItemZKData(sbssId ,checkItemListJson);
+			Map<String,Object> data = new HashMap<String,Object>();
+			data.put("values", checkItemBeanList);
+			result.setData(data);
+		} catch (Exception e) {
+			result.setFlag(false);
+			result.setMessage("获取中控数据值出错："+e.getMessage());
+			logger.error("获取中控数据值出错："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * 上传巡检任务巡检点设备与设施处理信息
+	 * @date 2017年9月25日 下午8:18:56
+	 * @author 胡毅
+	 * @param tokenId
+	 * @param executeDetail
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/postSBssExcuteInfo")
+	@ResponseBody
+	public ResultBean uploadSbssExcuteInfo(@RequestParam(required = true)String tokenId,
+									    @RequestParam(required = true)String executeDetail,MultipartHttpServletRequest request){
+		ResultBean result = new ResultBean();
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			result.setFlag(false);
+    		result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+    		return result;
+		}
+		List<String> savedAttachments = new ArrayList<String>();
+		try {
+			ExecuteSBSSBean uploadData = new Gson().fromJson(executeDetail, ExecuteSBSSBean.class);
+			if(StringUtils.isNotBlank(uploadData.getTtaskItemSbssId())){
+				Map<String, MultipartFile> fileMap = request.getFileMap();
+				String projectAbsolutePath = request.getSession().getServletContext().getRealPath("\\");
+	            File project = new File(projectAbsolutePath);
+	            WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+	            savedAttachments = bizTXjCxTaskItemSbssRstService.saveUploadSbssExcuteInfo(uploadData,loginInfo,fileMap,project.getParent());
+			}else{
+				result.setFlag(false);
+				result.setMessage("没有巡检任务巡检点设备与设施处理记录ID");
+			}
+            
+		} catch (Exception e) {
+			// 数据回滚，删除已保存到硬盘的附件
+			if(savedAttachments.size()>0){
+				for (String path : savedAttachments) {
+					FileUtil.deleteFile(path);
+				}
+			}
+			result.setFlag(false);
+			result.setMessage("上传处理信息保存失败："+e.getMessage());
+			logger.error("上传处理信息保存失败："+ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		
+		return result;
+	} 
+}

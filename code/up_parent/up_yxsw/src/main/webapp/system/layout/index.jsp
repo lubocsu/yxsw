@@ -1,0 +1,90 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>渝西水务——厂巡管理</title>
+<!-- QUI框架必需start -->
+<link rel="stylesheet" type="text/css" href="${path }/libs/css/import_basic.css"/>
+<link rel="stylesheet" type="text/css" id="skin" prePath="${path }/" scrollerY="false"/>
+<link rel="stylesheet" type="text/css" href="${path }/css/style.css">
+<script type="text/javascript" src="${path }/js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="${path }/libs/js/language/cn.js"></script>
+<script type="text/javascript" src="${path }/libs/js/framework.js"></script>
+<!--QUI框架必需end-->
+<!-- 引入主框架页面所需要的脚本main.js，该脚本只有主框架页面才使用。 -->
+<script type="text/javascript" src="${path}/libs/js/main.js"></script>
+
+<!--分隔条start-->
+<script type="text/javascript" src="${path}/libs/js/nav/spliter.js"></script>
+<!--分隔条end-->
+<script type="text/javascript" src="${path }/libs/js/popup/drag.js"></script>
+<script type="text/javascript" src="${path }/libs/js/popup/dialog.js"></script>
+<script type="text/javascript" src="${path }/js/index.js"></script>
+<script type="text/javascript" src="${path }/js/index-uc-ci.js" ></script>
+<script type="text/javascript" src="${path }/system/login/logout.js"></script>
+<script type="text/javascript">
+	var path="${path}";
+	// 页面常量
+	var tokenId = "${tokenId}";
+	var _system = "${_system}";
+	var _platform = "${_platform}";
+	var _owned_pc_systemcodes = $.parseJSON('${_owned_pc_systemcodes}'); //@required
+	var up_systemweb_index = "${up_systemweb_index}";
+	var up_systemweb_platform = "${up_systemweb_platform}";
+	//初始化页面加载的东西
+	jQuery(function(){
+		history.pushState(null, null, document.URL);
+	    window.addEventListener('popstate', function () {
+	        history.pushState(null, null, document.URL);
+	    });
+	});
+</script>
+</head>
+<body>
+	<div class="index-max">
+		<!-- 头部 -->
+		<div class="header">
+			<div class="logo-title"><span style="line-height: 52px;padding-left: 20px;">渝西水务—厂巡管理</span></div>
+			<div class="operation-basic">
+				<ul id="header-menu"></ul>				
+			</div>
+		</div>
+		<!-- 人员、时间信息 -->
+		<div class="nav-tool">
+			<div id="userinfo">
+				<span id="username"></span>
+				<span id="orgname" style="margin-left: 0px;"></span>
+				<span id="today" style="margin-left: 0px;"></span>
+			</div>
+		</div>
+		<!-- 主体部分 -->
+		<div class="content" style="position: absolute; left: 0; right: 0; top: 82px;bottom: 25px;">
+			<!--  左侧菜单 -->
+		    <div class="menu-left">
+		      <ul class="menu-max">
+		      </ul>
+		    </div>
+    
+		    <!-- 收折区域 -->
+		    <div class="index-click">
+		      <div class="click-images"></div>
+		    </div>
+		
+		    <!--  右侧主体  -->
+		    <div class="index-container" style="height: 100%;background: #f1f4ff;position: absolute;left: 190px;right: 0;bottom: 0;"> 
+		      <div class="index-container-iframe" style="width: 100%;height: 100%;">
+		        <iframe class="index-iframe" frameborder="0" src="" name="index-iframe"></iframe>
+		      </div>
+		    </div>
+		</div>
+
+		<!-- 底部 -->
+		<div class="copyright">©<script>document.write(new Date().getFullYear())</script>&nbsp;重庆远通电子技术开发有限公司</div>
+	</div>
+	
+</body>
+</html>

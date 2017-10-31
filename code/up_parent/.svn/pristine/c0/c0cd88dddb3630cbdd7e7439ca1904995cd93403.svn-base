@@ -1,0 +1,91 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.yxsw.dao.BizTXjFreqSegmentDao;
+import com.upsoft.yxsw.dao.BizTXjFreqSegmentSbssDao;
+import com.upsoft.yxsw.entity.BizTXjFreqSegment;
+import com.upsoft.yxsw.service.BizTXjFreqSegmentService;
+
+
+@Service
+public class BizTXjFreqSegmentServiceImpl extends BaseServiceImpl implements BizTXjFreqSegmentService {
+	
+	@Autowired
+	private BizTXjFreqSegmentDao freqSegmentDao;
+	@Autowired
+	private BizTXjFreqSegmentSbssDao freqSegmentSbssDao;
+	
+	/**
+	 * XXXXXXXXXXXXXXXXXXXXXXXX
+	 * @date 2017-09-20
+	 * @author 
+	 * @param bean
+	 * @param params
+	 * @return 
+	 */
+	public Map<String, Object> getList(PageBean bean, Map<String, Object> params){
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT S.FREQ_SEGMENT_ID, S.FREQ_SEGMENT_NAME, S.DETAIL_ID, S.DETAIL_NAME, S.START_TIME, S.END_TIME, S.BYZD, S.DEL_FLAG, S.CREATE_TIMESTEMP, S.CREATOR_ACCOUNT, S.CREATOR_NAME, S.BELONG_WSC_ID, S.BELONG_WSC_NAME, S.UPDATOR_ACCOUNT, S.UPDATOR_NAME, S.UPDATE_TIMESTEMP ");
+		sql.append(" FROM BIZ_T_XJ_FREQ_SEGMENT S ");
+		sql.append(" WHERE 1=1 ");
+		sql.append(" AND S.DEL_FLAG = '" + CommonConstant.STATUS_YoN.NO + "'");
+		
+		Map<String, Object> paramsMap = new HashMap<String, Object>();
+		if(null != params.get("freqSegmentName") && StringUtils.isNotBlank(params.get("freqSegmentName").toString())){
+			sql.append(" AND S.FREQ_SEGMENT_NAME like :freqSegmentName ");
+			paramsMap.put("freqSegmentName", MessageFormat.format("%{0}%", params.get("freqSegmentName").toString()));
+		}
+		if(null != params.get("orgCode") && StringUtils.isNotBlank(params.get("orgCode").toString())){
+			sql.append(" AND S.BELONG_WSC_ID = :orgCode ");
+			paramsMap.put("orgCode", params.get("orgCode").toString());
+		}
+		if(null != params.get("detailId") && StringUtils.isNotBlank(params.get("detailId").toString())){
+			sql.append(" AND S.DETAIL_ID = :detailId ");
+			paramsMap.put("detailId", params.get("detailId").toString());
+		}
+		return freqSegmentDao.queryPaginationListBySql(sql.toString(), paramsMap, bean);
+	}
+	
+	public BizTXjFreqSegment save(BizTXjFreqSegment bizTXjFreqSegment){
+		return freqSegmentDao.save(bizTXjFreqSegment);
+	}
+	
+	
+	/**
+	 * XXXXXXXXXXXXXXX
+	 * @date 2017-09-20
+	 * @author 
+	 * @param 
+	 * @return 
+	 */
+	public BizTXjFreqSegment getBizTXjFreqSegmentById(String id){
+		return freqSegmentDao.findOne(id);
+	}
+
+	@Override
+	public void deleteFreqSegmentByPerid(List<String> periodDetailIds) {
+		
+		StringBuilder sqlFreqSbss = new StringBuilder();
+		StringBuilder sqlFreq = new StringBuilder();
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("detailIds", periodDetailIds.toArray());
+		
+		sqlFreqSbss.append(" DELETE FROM BIZ_T_XJ_FREQ_SEGMENT_SBSS FS WHERE FS.FREQ_SEGMENT_ID IN ");
+		sqlFreqSbss.append(" (SELECT F.FREQ_SEGMENT_ID FROM BIZ_T_XJ_FREQ_SEGMENT F WHERE F.DETAIL_ID IN (:detailIds)) ");
+		
+		sqlFreq.append(" DELETE FROM BIZ_T_XJ_FREQ_SEGMENT F WHERE F.DETAIL_ID IN (:detailIds) ");
+		freqSegmentDao.executeSql(sqlFreq.toString(), params);
+		freqSegmentSbssDao.executeSql(sqlFreqSbss.toString(), params);
+	}
+}

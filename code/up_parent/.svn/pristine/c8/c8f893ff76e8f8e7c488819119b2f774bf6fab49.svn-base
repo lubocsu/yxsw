@@ -1,0 +1,534 @@
+package com.upsoft.system.util;
+
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+
+/**
+* Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：DateUtil.java<br>
+* 摘要：时间工具类<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：吴炫<br>
+* 完成日期：2015年3月2日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：吴炫<br>
+* 完成日期：2015年3月2日<br>
+ */
+public class DateUtil {
+	
+    /**
+	 * yyyy-MM-dd HH:mm:ss
+	 */
+	public final static String DATE_FULL_FORMAT = "yyyy-MM-dd HH:mm:ss";
+	/**
+	 * yyyyMMddHHmmss
+	 */
+	public final static String DATE_FULL_FORMAT_N = "yyyyMMddHHmmss";
+	/**
+	 * yyyy-MM-dd
+	 */
+	public final static String DATE_FORMAT_WITHOUT_TIME = "yyyy-MM-dd";
+	/**
+	 * yyyyMMdd
+	 */
+	public final static String DATE_FORMAT_yyyyMMdd = "yyyyMMdd";
+	
+	/**
+	 * 获取日期格式化类实例
+	 * @date 2015年1月22日 上午11:31:27
+	 * @author 蒋迪
+	 * @param patten
+	 * @return 
+	 */
+	public static SimpleDateFormat getFormatInstance(String patten){
+		return new SimpleDateFormat(patten);
+	}
+	//
+	/**
+	 * 获取第N年的自然年日期
+	 * @date 2015年5月5日 上午11:01:31
+	 * @author 冉恒鑫
+	 * @param date
+	 * @param number
+	 * @return
+	 */
+	public static Date getNaturalYearTime(Date date,int number){
+		Date yearTime = null;
+		Date temp = null;
+		switch (number) {
+		case 1:
+			yearTime = getNaturalYearDate(date);
+			break;
+		case 2:
+			temp = getNaturalYearDate(date);
+			yearTime = getNaturalYearDate(getDayByStep(temp, 1));
+			break;
+		case 3:
+			temp = getNaturalYearDate(date);
+			yearTime = getNaturalYearDate(getDayByStep(temp, 1));
+			yearTime = getNaturalYearDate(getDayByStep(yearTime, 1));
+			break;
+		}
+		return yearTime;
+	}
+	
+	/**
+	 * 获取今天的开始时间
+	 * @date 2015年3月2日 下午2:50:49
+	 * @author 吴炫
+	 * @return
+	 */
+	public static Date getStartTimeToday(){
+		Calendar todayStart = Calendar.getInstance();  
+        todayStart.set(Calendar.HOUR_OF_DAY, 0);  
+        todayStart.set(Calendar.MINUTE, 0);  
+        todayStart.set(Calendar.SECOND, 0);  
+        todayStart.set(Calendar.MILLISECOND, 0);
+        return todayStart.getTime();
+	}
+	/**
+	 * 获取今天的结束时间
+	 * @date 2015年3月2日 下午2:51:24
+	 * @author 吴炫
+	 * @return
+	 */
+	public static Date getEndTimeToday(){
+		Calendar todayEnd = Calendar.getInstance();  
+        todayEnd.set(Calendar.HOUR_OF_DAY, 23);  
+        todayEnd.set(Calendar.MINUTE, 59);  
+        todayEnd.set(Calendar.SECOND, 59);  
+        todayEnd.set(Calendar.MILLISECOND, 999);  
+        return todayEnd.getTime();
+	}
+	
+	/**
+	 * 校验日期是否在某个时间段内<br>
+	 * 是：返回 true；不是返回 false；
+	 * @date 2015年3月9日 下午7:31:49
+	 * @author 蒋迪
+	 * @param source	源时间
+	 * @param begin		时间段开始
+	 * @param end		时间段结束
+	 * @return 
+	 */
+	public static Boolean isBetweenDate(Date source, Date begin, Date end){
+		if (begin==null && end==null) return false;
+		if (begin==null) return end.after(source);
+		if (end==null) return begin.before(source);
+		return begin.before(source) && end.after(source);
+	}
+	
+	/**
+	 * 返回当天自然周的日期<br>
+	 * 如传入：2015-03-09日星期一，应返回2015-03-15星期天。<br>
+	 * 如传入：2015-03-15日星期天，应返回2015-03-15星期天。<br>
+	 * @date 2015年3月9日 下午8:16:53
+	 * @author 蒋迪
+	 * @param date
+	 * @return 
+	 */
+	public static Date getNaturalWeekDate(Date date){
+		//星期几
+		int week = getWeekDayNumber(date);
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		calendar.add(Calendar.DAY_OF_WEEK, 7-week);
+		return calendar.getTime();
+	}
+	
+	/**
+	 * 返回当天自然月的日期<br>
+	 * 如传入：2015-03-09，应返回2015-03-31。<br>
+	 * 如传入：2015-02-01，应返回2015-02-28。<br>
+	 * @date 2015年3月9日 下午8:16:53
+	 * @author 蒋迪
+	 * @param date
+	 * @return 
+	 */
+	public static Date getNaturalMonthDate(Date date){
+		Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int lastDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+        int today = calendar.get(Calendar.DAY_OF_MONTH);
+        calendar.add(Calendar.DAY_OF_MONTH, lastDay-today);
+        return calendar.getTime();
+	}
+	
+	/**
+	 * 返回当天自然季度的日期<br>
+	 * 如传入：2015-03-29，应返回2015-03-31。<br>
+	 * 如传入：2015-04-01，应返回2015-06-30。<br>
+	 * @date 2015年3月9日 下午8:16:53
+	 * @author 蒋迪
+	 * @param date
+	 * @return 
+	 */
+	public static Date getNaturalQuarterDate(Date date){
+		Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int month = calendar.get(Calendar.MONTH)+1;
+        if (month%3==0){
+        	return getNaturalMonthDate(date);
+        }
+        calendar.add(Calendar.MONTH, 3-(month%3));
+		return getNaturalMonthDate(calendar.getTime());
+	}
+	
+	/**
+	 * 返回当天自然年的日期<br>
+	 * 如传入：2015-03-09日星期一，应返回2015-12-31星期天。<br>
+	 * @date 2015年3月9日 下午8:16:53
+	 * @author 蒋迪
+	 * @param date
+	 * @return 
+	 */
+	public static Date getNaturalYearDate(Date date){
+		Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int month = calendar.get(Calendar.MONTH)+1;
+        if (month%12==0){
+        	return getNaturalMonthDate(date);
+        }
+        calendar.add(Calendar.MONTH, 12-(month%12));
+		return getNaturalMonthDate(calendar.getTime());
+	}
+	
+	/**
+	 * 返回传入日期属于星期几
+	 * @date 2015年3月9日 下午8:37:15
+	 * @author 蒋迪
+	 * @param date
+	 * @return 异常返回0
+	 */
+	public static int getWeekDayNumber(Date date){
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		int week = calendar.get(Calendar.DAY_OF_WEEK);
+		week = week + 6;
+		if (week>7)
+			week = week - 7;
+		return week;
+	}
+	
+	/**
+	 * 返回指定日期增减天数后的新日期
+	 * @date 2015年3月10日 上午10:05:38
+	 * @author 蒋迪
+	 * @param date	指定日期
+	 * @param step	增减天数，正为增，负为减
+	 * @return 
+	 */
+	public static Date getDayByStep(Date date, int step){
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		calendar.add(Calendar.DAY_OF_YEAR, step);
+		return calendar.getTime();
+	}
+	
+	/**
+	 * @方法描述
+	 * 根据日期参数，判断是否跨年，组装跨年日期段，主要用于跨年查询</br>
+	 * 如2013-03-21 14:29:30，2015-10-03 10:42:10，返回result结构如下：</br>
+	 * result[0]={2013-03-21 14:29:30, 2013-12-31 23:59:59}</br>
+	 * result[1]={2014-01-01 00:00:00, 2014-12-31 23:59:59}</br>
+	 * result[2]={2015-01-01 00:00:00, 2015-10-03 10:42:10}
+	 * @author JiangDi
+	 * @date 2015年1月4日
+	 * @exception	异常返回null
+	 * @param startDateStr	开始时间，格式仅支持yyyy-MM-dd HH:mm:ss
+	 * @param endDateStr	结束时间，格式仅支持yyyy-MM-dd HH:mm:ss
+	 * @return	
+	 */
+	public static List<List<String>> getOverYear(String startDateStr, String endDateStr){
+		List<List<String>> result = new ArrayList<List<String>>();
+		List<String> list = new ArrayList<String>();
+		try{
+			Date startDate = parseDate(startDateStr, DATE_FULL_FORMAT);
+			Date endDate = parseDate(endDateStr, DATE_FULL_FORMAT);
+			//开始日期大于结束日期，抛出异常
+			if (startDate.compareTo(endDate)>0){
+				throw new Exception();
+			}
+			int startYear = getYear(startDate);
+			int endYear = getYear(endDate);
+			for (int i = 0; i <= endYear-startYear; i++) {
+				list = new ArrayList<String>();
+				if (i==0){
+					list.add(startDateStr);
+				}else{
+					list.add((startYear+i)+"-01-01 00:00:00");
+				}
+				
+				if (i==endYear-startYear){
+					list.add(endDateStr);
+				}else{
+					list.add((startYear+i)+"-12-31 23:59:59");
+				}
+				result.add(list);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			return null;
+		}
+		return result;
+	}
+	
+	public static Date parseDate (String date ,String format){
+		SimpleDateFormat sf = new SimpleDateFormat(format);
+		try {
+			return sf.parse(date);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * @方法描述
+	 * 获取日期中的年份字段，返回YYYY格式的年份
+	 * @author JiangDi
+	 * @date 2015年1月4日
+	 * @exception	异常返回-1
+	 * @param dateString
+	 * @return
+	 */
+	public static int getYear(Date date){
+		try {
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(date);
+			return cal.get(Calendar.YEAR);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}
+	
+	public static String dateToString(Date d, String format) {
+		SimpleDateFormat sdf = new SimpleDateFormat(format);
+		return sdf.format(d);
+	}
+	
+	/**
+	* String类型的DATE转换
+	* @date 2015年3月20日 下午3:09:33
+	* @author 冉恒鑫
+	* @param 字符串类型的Date
+	* @param format格式，例如"yyyy-MM-dd HH:mm:ss"，"yyyy/MM/dd HH:mm:ss"
+	* @return
+	*/
+	public static Date stringToDate(String source, String format) {
+		SimpleDateFormat sdf = new SimpleDateFormat(format);
+		try {
+			return sdf.parse(source);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return new Date();
+		}
+	}
+	
+	/**
+	    * Date类型转Timestamp
+	    * @date 2015年3月20日 下午3:12:45
+	    * @author 冉恒鑫
+	    * @param date
+	    * @param format格式
+	    * @return
+	    */
+		public static Timestamp dateToTimestamp(Date d, String format) {
+			SimpleDateFormat sdf = new SimpleDateFormat(format);
+			String s = sdf.format(d);
+			Timestamp ts = Timestamp.valueOf(s);
+			return ts;
+		}
+		
+		/**
+		 * Timestamp类型转Date类型
+		 * @date 2015年4月15日 下午1:59:33
+		 * @author 冉恒鑫
+		 * @param t
+		 * @param format
+		 * @return
+		 */
+		public static Date timestampToDate(Timestamp t, String format) {
+			SimpleDateFormat sdf = new SimpleDateFormat(format);
+			String s = t.toString();
+			Date d;
+			try {
+				d = sdf.parse(s);
+			} catch (ParseException e) {
+				d = new Date();
+			}
+			return d;
+		}
+		
+		/**
+		 * @date 2017年3月15日 上午11:10:02
+		 * @author Administrator
+		 * @param dateString String类型的时间
+		 * @param oriFormat	原来的格式
+		 * @param format 转换后的格式
+		 * @return 
+		 */
+		public static String stringToString(String dateString, String oriFormat, String format){
+			
+			if(StringUtils.isNotEmpty(dateString)){
+				
+				Date date = stringToDate(dateString, oriFormat);
+				dateString = dateToString(date, format);
+			}
+			return dateString;
+		}
+	
+	/**
+	 * @return 返回当前日期一个月前的日期,返回个格式需要指定
+	 */
+	public static String getLastestOneMonth(String formatType){
+		Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.MONTH, -1);
+		
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * 获取本月的第一天
+	 * @date 2017年10月14日 上午11:08:06
+	 * @author 杨磊
+	 * @param formatType
+	 * @return
+	 */
+	public static String getNowMonthFirstDay(String formatType){
+		Calendar cal = Calendar.getInstance();
+		//cal.add(Calendar.,1 );
+		cal.set(Calendar.DAY_OF_MONTH, 1);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * 获取本周的第一天 也就是星期一
+	 * @date 2017年10月14日 下午1:08:52
+	 * @author 杨磊
+	 * @param formatType
+	 * @return
+	 */
+	public static String getFirstWeek(String formatType){
+		Calendar cal = Calendar.getInstance();
+		//cal.add(Calendar.,1 );
+		cal.set(Calendar.DAY_OF_WEEK, 1);
+		cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * 获取本年的第一天 如2017年1月1日
+	 * @date 2017年10月14日 下午1:32:45
+	 * @author 杨磊
+	 * @param formatType
+	 * @return
+	 */
+	public static String getFirstYear(String formatType){
+		Calendar cal = Calendar.getInstance();
+		//cal.add(Calendar.,1 );
+		cal.set(Calendar.DAY_OF_YEAR, 1);
+		
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * @return 返回当前日期三个月前的日期,返回个格式需要指定
+	 */
+	public static String getLastestThreeMonth(String formatType){
+		Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.MONTH, -3);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * 获取当前时间的前一周
+	 * @date 2017年9月23日 下午1:50:44
+	 * @author 杨磊
+	 * @param formatType
+	 * @return
+	 */
+	public static String getLastWeek(String formatType){
+		
+		Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.DATE, -7);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+		
+	}
+	/**
+	 * @return 返回当前日期半年前的日期,返回个格式需要指定
+	 */
+	public static String getLastestSixMonth(String formatType){
+		Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.MONTH, -6);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	/**
+	 * @return 返回当前日期一年前的日期,返回个格式需要指定
+	 */
+	public static String getLastestYear(String formatType){
+		Calendar cal = Calendar.getInstance();
+		cal.add(Calendar.YEAR, -1);
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+	
+	/**
+	 * @return 返回当前日期,返回个格式需要指定
+	 */
+	public static String getCurrentDay(String formatType){
+		Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sf = new SimpleDateFormat(formatType);
+		return sf.format(cal.getTime());
+	}
+
+	/**
+	 * 通过传入的时间范围生成月表后缀
+	 * @param startTime 开始时间
+	 * @param endTime 结束时间
+	 * @param patten 表后缀时间格式
+	 * @return 例如[201401,201402,201403]
+	 */
+	public static List<String> getTableNames(String startTime,String endTime,String patten){
+		List<String> dateList =  new ArrayList<String>();
+		final String T = "yyyyMM";
+		SimpleDateFormat sf =new SimpleDateFormat(patten);
+		try {
+			String lastM = DateUtil.stringToString(endTime, patten,T);
+			Date d1 = sf.parse(startTime);
+			Date d2 = sf.parse(endTime);
+			Calendar c1 = Calendar.getInstance();
+			Calendar c2 = Calendar.getInstance();
+			c1.setTime(d1);
+			c2.setTime(d2);
+			while (c1.compareTo(c2) <= 0&&!StringUtils.equals(DateUtil.dateToString(c1.getTime(),T),lastM)) {
+				int year = c1.get(Calendar.YEAR);
+				String month = String.valueOf(c1.get(Calendar.MONTH) + 1);
+				if(month.length() == 1){
+					month = "0" + month;
+				}
+				String time = year + month; 
+				dateList.add(time);
+				c1.add(Calendar.MONTH, 1);
+			}
+			dateList.add(DateUtil.dateToString(d2, T));
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return dateList;
+	}
+}

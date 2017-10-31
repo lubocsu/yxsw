@@ -1,0 +1,196 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib uri="http://java.sun.com/jstl/fmt_rt" prefix="fmt"%>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+	 <meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>设备详情</title>
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<!--SUI mobile必须-->
+	<link rel="stylesheet" href="${path}/mobile/libs/sui/css/sm.css" />
+	<link rel="stylesheet" href="${path}/mobile/libs/sui/css/sm-extend.css" />    
+	<!--自定义样式-->
+	<link rel="stylesheet" href="${path}/mobile/css/yxapp.css" />
+</head>
+<body>
+	<div class="page-group">
+    	<div class="page page-current">
+	    	<header class="bar bar-nav">	
+				<span class="custom-icon fanhui"></span>
+				<h1 class="title">设施详情</h1>
+			</header>
+			<div class="content">
+				<div class="div-content">
+					<table class="gd-table">
+					<tr>
+						<th class="label-title">设施编码</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${ss.code}</span>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<th class="label-title">设施名称</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${ss.name}</span>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<th class="label-title">功能说明</th>
+						<td class="unwrite">
+<!-- 							<div class="situation"> -->
+								<span class="title-content">${ss.function}</span>
+<!-- 							</div> -->
+						</td>
+					</tr>
+					<tr>
+						<th class="label-title">上级设施</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${pname}</span>
+							</div>
+						</td>
+					</tr>
+				<%-- 	<tr>
+						<th  class="label-title">层级关系</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${ss.layer}</span>
+							</div>
+						</td>
+					</tr> --%>
+			<%-- 		<tr>
+						<th  class="label-title">排序号</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${ss.sort}</span>
+							</div>
+						</td>
+					</tr> --%>
+					<tr>
+						<th class="label-title ">是否必须扫描</th>
+						<td class="unwrite">
+							<div class="situation">
+							<span class="title-content">${ss.byzd}</span>
+							</div>
+						</td>
+					</tr>
+			<%-- 		<tr>
+						<th class="label-title">x_坐标</th>
+						<td class="unwrite">
+							<div class="situation">
+							<span class="title-content">${ss.longitude}</span>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<th class="label-title">y_坐标</th>
+						<td class="unwrite">
+							<div class="situation">
+								<span class="title-content">${ss.latitude}</span>
+							</div>
+						</td>
+					</tr> --%>
+					<tr>
+						<th class="label-title">备注</th>
+						<td class="unwrite">
+<!-- 							<div class="situation"> -->
+							<span class="title-content">${ss.remark}</span>
+<!-- 							</div> -->
+						</td>
+					</tr>
+					 <tr>
+						<th class="label-title">创建人</th>
+						<td class="unwrite">
+							<div class="situation">
+						<span class="title-content">${ss.creatorName}</span> 
+							</div>
+						</td>
+					</tr>
+					
+<!-- 					<tr> -->
+<!-- 						<th class="label-title">修改人</th> -->
+<!-- 						<td class="unwrite"> -->
+<!-- 							<div class="situation"> -->
+<%-- 							<span class="title-content">${ss.updatorName}</span> --%>
+<!-- 							</div> -->
+<!-- 						</td> -->
+<!-- 					</tr> -->
+					<tr>
+						<th class="label-title">创建时间</th>
+						<td class="unwrite">
+							<div class="situation">
+								<fmt:parseDate value="${ss.createTimestemp}"  var="createtime" pattern="yyyyMMddHHmmss"/>
+								<fmt:formatDate value="${createtime }" pattern="yyyy-MM-dd HH:mm:ss"/>
+							</div>
+						</td>
+					</tr> 
+					<tr>
+						<th class="label-title">修改时间</th>
+						<td class="unwrite">
+							<div class="situation">
+								<fmt:parseDate value="${ss.updateTimestemp}"  var="updatetime" pattern="yyyyMMddHHmmss"/>
+								<fmt:formatDate value="${updatetime }" pattern="yyyy-MM-dd HH:mm:ss"/>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<th class="label-title">修改人</th>
+						<td class="unwrite">
+							<div class="situation">
+								${ss.updatorName}
+							</div>
+						</td>
+					</tr>
+<!-- 					<tr> -->
+<!-- 						<th class="label-title">是否删除</th> -->
+<!-- 						<td class="unwrite"> -->
+<!-- 							<div class="situation"> -->
+<%-- 							<c:if test="${ss.delFlag eq '0'}">否</c:if>	 --%>
+<%-- 							<c:if test="${ss.delFlag eq '1'}">是</c:if>	 --%>
+<!-- 							</div> -->
+<!-- 						</td> -->
+<!-- 					</tr> -->
+				</table>
+				</div>
+			<!--底部按钮 start-->
+				<div class="div-btn">
+					<!--btm-btn2的几种用法注意：①“取消”、“返回”类：默认黑色，此类一般来说始终处于可用状态，无需加特别的class。
+					②“提交”、“确认”类：可用状态为class="active",不可用状态为class="disabled",此类一般来说状态必为“可用”、“不可用”之一
+					③“删除”类：可用状态为class="warning",不可用状态为class="disabled",此类一般来说状态必为“可用”、“不可用”之一-->
+					<div class="btm-btn2 "style="background:none;"><span class="confirm-ok" style="width:100%;">巡检记录</span></div>
+				</div>
+				<!--底部按钮 end-->
+			</div>
+		</div>
+	</div> 
+	<!--SUI mobile必须-->
+	<script type='text/javascript' src='${path}/mobile/js/zepto.js' charset='utf-8'></script>
+	<script type='text/javascript' src='${path}/mobile/libs/sui/js/sm.js' charset='utf-8'></script>
+	<script type='text/javascript' src='${path}/mobile/libs/sui/js/sm-extend.js' charset='utf-8'></script>	
+	<!--自定义脚本-->
+	<script type="text/javascript" src="${path}/mobile/js/uc-ui.js"></script>
+	<script type="text/javascript" src="${path}/mobile/js/yxapp.js"></script>
+	<script type="text/javascript">
+	$(function(){
+		$(document).on('click','.fanhui', function () {
+			yxapp.webview.goBack();
+		});
+		$(document).on('click','.confirm-ok', function () {
+
+			var url = "${path}/mobile/sbssScan/toXjList?xjId=${ss.ssId}&tokenId=${tokenId}";
+
+			location.href = url;
+		});
+});
+</script>
+</body>
+</html>

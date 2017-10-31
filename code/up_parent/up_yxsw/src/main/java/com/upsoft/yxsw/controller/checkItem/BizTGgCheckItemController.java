@@ -1,0 +1,251 @@
+package com.upsoft.yxsw.controller.checkItem;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.system.util.ExceptionFormatUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTGgCheckItem;
+import com.upsoft.yxsw.entity.BizTGgCheckItemDetail;
+import com.upsoft.yxsw.service.BizTGgCheckItemDetailService;
+import com.upsoft.yxsw.service.BizTGgCheckItemService;
+import com.upsoft.yxsw.service.BizTGgCheckItemfKxxSelService;
+import com.upsoft.yxsw.service.BizTGgCheckItemfKxxService;
+import com.upsoft.yxsw.service.BizTGgSbssAttachBaseService;
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTGgCheckItemController.java<br>
+ * 摘要：<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-08 <br>
+ */
+@Controller
+@RequestMapping("/checkitem")
+public class BizTGgCheckItemController  {
+	
+	private static final String JSP_PREFIX = "/WEB-INF/jsp/checkitem";
+	private static final Logger logger = Logger.getLogger(BizTGgCheckItemController.class);
+	
+	@Autowired
+	public BizTGgCheckItemService bizTGgCheckItemService;
+	@Autowired
+	public BizTGgCheckItemDetailService bizTGgCheckItemDetailService;
+	@Autowired
+	public BizTGgCheckItemfKxxService bizTGgCheckItemfKxxService;
+	@Autowired
+	public BizTGgCheckItemfKxxSelService BizTGgCheckItemfKxxSelService;
+	@Autowired
+	public BizTGgSbssAttachBaseService bizTGgSbssAttachBaseService;
+	
+	@RequestMapping("/init")
+	public String init(ModelMap map,HttpServletRequest request,String backParam){
+		map.put("item",new Gson().fromJson(backParam, BizTGgCheckItem.class));
+		// 检查项输入类型
+		map.put("CHECKITEM_INPUTTYPE", DictConstant.CHECKITEM_INPUTTYPE.getValue());
+		// 检查项类型
+		map.put("CHECKITEM_TYPE", DictConstant.CHECKITEM_TYPE.getValue());
+		return JSP_PREFIX + "/main";
+	}
+	
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/getGridList")
+	@ResponseBody
+	public Map<String,Object> getGridList (ModelMap map,HttpServletRequest request,BizTGgCheckItem param){
+		Map<String,Object> result = new HashMap<String,Object>();
+		PageBean pageBean = new PageBean(request);
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		try {
+			paramMap = BeanUtils.describe(param);
+		} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
+			logger.error("查询检查项分页数据时，将参数bean转为map时出错："+e1.getMessage());
+		}
+		result = bizTGgCheckItemService.getList(pageBean ,paramMap);
+		return result;
+	}
+	
+	/**
+	 * 调整到新增页面，并记住列表页面的查询参数已作参数回显
+	 * @param map
+	 * @param request
+	 * @param queryParam
+	 * @return
+	 */
+	@RequestMapping("/toAdd")
+	public String toAdd(ModelMap map,HttpServletRequest request,String queryParam){
+		map.put("backParam", queryParam);
+		map.put("backURL","/checkitem/init");
+		Gson gson = new Gson();
+		// 是否异常
+		map.put("CHECKITEM_SFYC_LIST", gson.toJson(ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFYC.getValue())));
+		// 是否默认
+		map.put("CHECKITEM_SFMR_LIST", gson.toJson(ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue())));
+		// 检查项输入类型
+		map.put("CHECKITEM_INPUTTYPE", DictConstant.CHECKITEM_INPUTTYPE.getValue());
+		// 检查项输入类型单选字典值
+		map.put("CHECKITEM_INPUTTYPE_RADIO", Constant.CHECKITEM_INPUTTYPE_VALUE.RADIO.getValue());
+		// 检查项类型
+		map.put("CHECKITEM_TYPE", DictConstant.CHECKITEM_TYPE.getValue());
+		return JSP_PREFIX+"/add";
+	}
+	
+	/**
+	 * 验证检查项编码唯一性
+	 * @date 2017年9月10日 下午3:37:18
+	 * @author 胡毅
+	 * @param checkItemCode
+	 * @return
+	 */
+	@RequestMapping("/validateCheckItemCode")
+	@ResponseBody
+	public String validateCheckItemCode(@RequestParam(value="validateValue")String checkItemCode){
+		long count = bizTGgCheckItemService.validateCheckItemCode(checkItemCode);
+		
+		if(count>0){
+			return "{\"validateResult\":{\"valid\":false}}";
+		}else{
+			return "{\"validateResult\":{\"valid\":true}}";
+		}
+	}
+	
+	@RequestMapping("/doAdd")
+	@ResponseBody
+	public boolean doAdd(@RequestParam(required=true)String checkItem,@RequestParam(required=true)String checkItemDetail,HttpServletRequest request){
+		Gson gson = new Gson();
+		BizTGgCheckItem checkItemEnity = gson.fromJson(checkItem, BizTGgCheckItem.class);
+		checkItemEnity.setDelFlag(Integer.valueOf(Constant.CHECKITEM_DEL_FLAG.NO.getValue()));
+		String timestemp = DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N);
+		checkItemEnity.setCreateTimestemp(timestemp);
+		SysUser user = SysUtils.getLoginSysUser(request);
+		checkItemEnity.setCreatorAccount(user.getUserId());
+		checkItemEnity.setCreatorName(user.getUserName());
+		checkItemEnity.setUpdateTimestemp(timestemp);
+		checkItemEnity.setUpdatorAccount(user.getUserId());
+		checkItemEnity.setUpdatorName(user.getUserName());
+		List<BizTGgCheckItemDetail> checkItemDetailEnityList = gson.fromJson(checkItemDetail, new TypeToken<List<BizTGgCheckItemDetail>>() {}.getType());
+		boolean f = bizTGgCheckItemService.saveCheckItemAndDetail(checkItemEnity,checkItemDetailEnityList);
+		return f;
+	}
+	
+	@RequestMapping("/doDel")
+	@ResponseBody
+	public ResultBean doDel(@RequestParam(required=true)String checkitemIds){
+		String[] checkItemIdArr = checkitemIds.split(",");
+		List<String> checkItemIdList = new ArrayList<String>();
+		for (String string : checkItemIdArr) {
+			checkItemIdList.add(string);
+		}
+		ResultBean result = new ResultBean();
+		try {
+			List<BizTGgCheckItem> cannotDeletelist = bizTGgCheckItemService.delete(checkItemIdList);
+			if(null!=cannotDeletelist){
+				String cannotDelItemName = "";
+				for (BizTGgCheckItem item : cannotDeletelist) {
+					cannotDelItemName += item.getCheckItemName()+",";
+				}
+				result.setMessage("检查项【"+cannotDelItemName.substring(0, cannotDelItemName.length()-1)+"】已经被关联到设备或设施，将不会被删除");
+			}else{
+				result.setMessage("删除检查项失败");
+			}
+		} catch (Exception e) {
+			result.setMessage(e.getMessage());
+			result.setFlag(false);
+			logger.error(ExceptionFormatUtil.formatExceptionTrace(e));
+		}
+		return result;
+	}
+	
+	@RequestMapping("/toView")
+	public String toView(@RequestParam(required=true)String checkItemId,ModelMap mod){
+		// 查询检查项信息
+		Map<String,Object> checkItemMap = bizTGgCheckItemService.findOne(checkItemId);
+		if(StringUtils.equals(checkItemMap.get("inputType").toString(),Constant.CHECKITEM_INPUTTYPE_VALUE.RADIO.getValue())){
+			// 获取检查项明细信息
+			List<Map<String,Object>> checkItemDetailList = bizTGgCheckItemDetailService.getListByCheckItemId(checkItemId);
+			mod.addAttribute("checkItemDetailList", checkItemDetailList);
+		}else{
+			mod.addAttribute("checkItemDetailList", null);
+		}
+		mod.addAttribute("checkItemMap",checkItemMap);
+		
+		return JSP_PREFIX+"/view";
+	}
+	
+	@RequestMapping("/toModify")
+	public String toModify(@RequestParam(required=true)String checkItemId,String queryParam,ModelMap mod){
+		mod.put("backParam", queryParam);
+		mod.put("backURL","/checkitem/init");
+		Gson gson = new Gson();
+		// 是否异常字典值
+		mod.put("CHECKITEM_SFYC_LIST", gson.toJson(ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFYC.getValue())));
+		// 是否默认字典值
+		mod.put("CHECKITEM_SFMR_LIST", gson.toJson(ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue())));
+		// 检查项输入类型
+		mod.put("CHECKITEM_INPUTTYPE", DictConstant.CHECKITEM_INPUTTYPE.getValue());
+		// 检查项输入类型单选字典值
+		mod.put("CHECKITEM_INPUTTYPE_RADIO", Constant.CHECKITEM_INPUTTYPE_VALUE.RADIO.getValue());
+		// 检查项类型
+		mod.put("CHECKITEM_TYPE", DictConstant.CHECKITEM_TYPE.getValue());
+		
+		BizTGgCheckItem checkItem = bizTGgCheckItemService.findOne(BizTGgCheckItem.class,checkItemId);
+		List<BizTGgCheckItemDetail> checkItemDetailList = bizTGgCheckItemDetailService.getListByCheckItemId(checkItemId,null);
+		mod.addAttribute("checkItem", checkItem);
+		if(checkItemDetailList.size()>0){
+			mod.addAttribute("checkItemDetailList", checkItemDetailList);
+			// 如果存在检查项明细，这初始化页面序号
+			mod.addAttribute("start_sort", checkItemDetailList.size()+1);
+		}else{
+			mod.addAttribute("checkItemDetailList", null);
+			mod.addAttribute("start_sort",1);
+		}
+		return JSP_PREFIX+"/modify";
+	}
+	
+	@RequestMapping("/doModify")
+	@ResponseBody
+	public boolean doModify(@RequestParam(required=true)String checkItem,@RequestParam(required=true)String checkItemDetail,HttpServletRequest request){
+		Gson gson = new Gson();
+		BizTGgCheckItem _new = gson.fromJson(checkItem, BizTGgCheckItem.class);
+		BizTGgCheckItem old = bizTGgCheckItemService.findOne(BizTGgCheckItem.class, _new.getCheckItemId());
+		old.setCheckItemName(_new.getCheckItemName());
+		old.setCheckItemDesc(_new.getCheckItemDesc());
+		
+		String timestemp = DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N);
+		SysUser user = SysUtils.getLoginSysUser(request);
+		old.setUpdateTimestemp(timestemp);
+		old.setUpdatorAccount(user.getUserId());
+		old.setUpdatorName(user.getUserName());
+		List<BizTGgCheckItemDetail> checkItemDetailEnityList = gson.fromJson(checkItemDetail, new TypeToken<List<BizTGgCheckItemDetail>>() {}.getType());
+		boolean f = bizTGgCheckItemService.saveCheckItemAndDetail(old,checkItemDetailEnityList);
+		return f;
+	}
+}

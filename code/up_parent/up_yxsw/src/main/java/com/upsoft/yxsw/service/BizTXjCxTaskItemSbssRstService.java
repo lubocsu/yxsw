@@ -1,0 +1,50 @@
+package com.upsoft.yxsw.service;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.web.multipart.MultipartFile;
+
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.service.BaseService;
+import com.upsoft.yxsw.mobile.bean.execute.CheckItemBean;
+import com.upsoft.yxsw.mobile.bean.execute.ExecuteSBSSBean;
+
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTXjCxTaskItemSbssRstService.java<br>
+ * 摘要：巡检任务巡检点设备与设施表检查项结果<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：hy<br>
+ * 完成日期：2017-09-25 <br>
+ */
+public interface BizTXjCxTaskItemSbssRstService  extends BaseService {
+
+	/**
+	 * 上传巡检任务巡检点设备与设施处理信息
+	 * @date 2017年9月25日 下午8:18:51
+	 * @author 胡毅
+	 * @param uploadData
+	 * @param loginInfo
+	 * @param fileMap
+	 * @param uploadPath
+	 * @return
+	 */
+	List<String> saveUploadSbssExcuteInfo(ExecuteSBSSBean uploadData,WSLoginInfoBean loginInfo, Map<String, MultipartFile> fileMap,
+			String uploadPath) throws Exception;
+
+	/**
+	 * 根据巡检任务巡检点设备设施记录ID获取设备设施检查项结果
+	 * @date 2017年10月14日 上午10:49:12
+	 * @author 胡毅
+	 * @param ttaskItemSbssId
+	 * @return
+	 */
+	List<CheckItemBean> getListByTaskItemSbssId(String ttaskItemSbssId); 
+	
+
+}

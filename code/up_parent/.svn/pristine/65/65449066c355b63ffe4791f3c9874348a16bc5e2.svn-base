@@ -1,0 +1,113 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.entity.ComTAttachment;
+import com.upsoft.system.service.AttachmentService;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.dao.BizTXjCxTaskItemDAO;
+import com.upsoft.yxsw.entity.BizTXjCxTaskItem;
+import com.upsoft.yxsw.mobile.bean.AttachmentPathAndNameBean;
+import com.upsoft.yxsw.mobile.bean.task.SbssListBean;
+import com.upsoft.yxsw.mobile.bean.task.WaningListBean;
+import com.upsoft.yxsw.service.BizTGgWarningManageService;
+import com.upsoft.yxsw.service.BizTXjCxTaskItemSbssService;
+import com.upsoft.yxsw.service.BizTXjCxTaskItemService;
+
+
+@Service
+public class BizTXjCxTaskItemServiceImpl extends BaseServiceImpl implements BizTXjCxTaskItemService {
+	
+	@Autowired
+	private BizTXjCxTaskItemDAO bizTXjCxTaskItemDAO;
+	@Autowired
+	private BizTGgWarningManageService bizTGgWarningManageService;
+	@Autowired
+	private AttachmentService attachmentService;
+	@Autowired
+	private BizTXjCxTaskItemSbssService bizTXjCxTaskItemSbssService;
+	
+	public Map<String, Object> getList(PageBean bean, Map<String, Object> params){
+		return null;
+	}
+
+	@Override
+	public List<BizTXjCxTaskItem> getTaskPointList(String taskId) {
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT T.TASK_ITEM_ID, T.TASK_ID, T.XJD_ITEM_ID, T.XJD_ITEM_NAME, T.XJD_ITEM_ADDRESS, T.XJD_ITEM_DESC, T.RFID_CONFIRMED_TYPE, T.OPT_TIME, T.HAVE_COMPLETE, T.RFID_CODE, T.BYZD ");
+		sql.append("FROM BIZ_T_XJ_CX_TASK_ITEM T WHERE T.TASK_ID = :taskId");
+		Map<String,Object> params = new HashMap<String,Object>();
+		params.put("taskId", taskId);
+		
+		return bizTXjCxTaskItemDAO.queryListBySql(sql.toString(), params, BizTXjCxTaskItem.class);
+	}
+
+	@Override
+	public Map<String, Object> updatePointItemAndGetSbssInfoAndWarningByPointId(String taskItemId,String rfid,String basePath) {
+		BizTXjCxTaskItem taskItem = bizTXjCxTaskItemDAO.findOne(taskItemId);
+		// 设置巡检点记录的处理方式和操作时间
+		if(StringUtils.isBlank(taskItem.getRfidConfirmedType())||StringUtils.equals(taskItem.getRfidConfirmedType(), Constant.RFID_CONFIRMED_TYPE.CANNOT_SCAN.getValue())){
+			taskItem.setRfidConfirmedType(StringUtils.isNotBlank(rfid)?Constant.RFID_CONFIRMED_TYPE.SCANNED.getValue():Constant.RFID_CONFIRMED_TYPE.CANNOT_SCAN.getValue());
+		}
+		taskItem.setOptTime(DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N));
+		bizTXjCxTaskItemDAO.save(taskItem);
+		// 获取点位的安全提醒和设备设施信息
+		List<WaningListBean> warningBeanList = new ArrayList<WaningListBean>();
+		
+		String pointId = taskItem.getXjdItemId();
+		List<Map<String, Object>> warningList = bizTGgWarningManageService.getWaningListByTxType(pointId,Constant.DETAIL_TYPE.WARNING.getValue());
+		if(warningList.size()>0){
+			List<String> warningIdList = new ArrayList<String>();
+			WaningListBean wanBean = new WaningListBean();
+			for (Map<String, Object> warning : warningList) {
+				warningIdList.add(warning.get("warning_id").toString());
+				wanBean.setWarningId(warning.get("warning_id").toString());
+				wanBean.setTitle(warning.get("title").toString());
+				wanBean.setContent((null!=warning.get("content")?warning.get("content").toString():""));
+				wanBean.setTitleIco((null!=warning.get("title_icon")?warning.get("title_icon").toString():""));
+				wanBean.setTxType(warning.get("tx_type").toString());
+				wanBean.setIsHaveRead((null!=warning.get("is_have_read")?warning.get("is_have_read").toString():""));
+				wanBean.setIsImportant((null!=warning.get("is_important")?warning.get("is_important").toString():""));
+				warningBeanList.add(wanBean);
+			}
+			List<ComTAttachment> attachments = attachmentService.getAttachmentList(warningIdList);
+			Map<String,List<AttachmentPathAndNameBean>> attachmentMap = new HashMap<String,List<AttachmentPathAndNameBean>>();
+			for (ComTAttachment atta : attachments) {
+				List<AttachmentPathAndNameBean> tmpList = null;
+				if(attachmentMap.containsKey(atta.getBusinessId())){
+					tmpList = attachmentMap.get(atta.getBusinessId());
+				}else{
+					tmpList = new ArrayList<AttachmentPathAndNameBean>();
+				}
+				AttachmentPathAndNameBean tmp = new AttachmentPathAndNameBean();
+				tmp.setName(atta.getOldAttachmentName()+"."+atta.getAttachmentSuffix());
+				tmp.setPath(basePath+atta.getAttachmentPath());
+				tmpList.add(tmp);
+				attachmentMap.put(atta.getBusinessId(), tmpList);
+			}
+			for (WaningListBean warningBean : warningBeanList) {
+				warningBean.setAttachPathNameList(attachmentMap.get(warningBean.getWarningId()));
+			}
+		}
+		// 获取点位设备信息
+		List<SbssListBean> taskItemSbssList = bizTXjCxTaskItemSbssService.getBeanListByTaskItemId(taskItemId);
+		
+		Map<String, Object> data = new HashMap<String,Object>();
+		data.put("warningList", warningBeanList);
+		data.put("sbssList", taskItemSbssList);
+		return data;
+		
+	}
+	
+}

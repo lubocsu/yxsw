@@ -1,0 +1,190 @@
+package com.upsoft.login.controller;
+
+import java.io.File;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.multipart.commons.CommonsMultipartResolver;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.system.bean.CustomFileBean;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：FileController.java<br>
+* 摘要：公用文件上次组件 controller<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：胡毅<br>
+* 完成日期：2017年9月13日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月13日<br>
+ */
+@Controller
+@RequestMapping("/file")
+public class FileController {
+	
+	private static final Logger logger = Logger.getLogger(FileController.class);
+	
+	private static final String S = File.separator;
+	
+	private static final String TOP = "uploadFiles";
+	
+	/**
+	 *  异步删除图文导航文件
+	 * @date 2017年4月22日 下午2:19:27
+	 * @author 胡毅
+	 * @param request
+	 * @param modelDirName 
+	 * @param catalog
+	 * @param fileId
+	 * @param cancel 是否是通过关闭新增巡检点弹框发起的请求，此时的fileId应该为空
+	 * @return
+	 */
+	@RequestMapping("/delete")
+	@ResponseBody
+	public boolean gisImageDelete(HttpServletRequest request,
+			@RequestParam(required = true,value="module")String modelDirName,
+			@RequestParam(required=true,value="catalog")String catalog, String fileId,Boolean cancel){
+		cancel = null==cancel?false:true;
+		try {
+			 String projectAbsolutePath = request.getSession().getServletContext().getRealPath("\\");
+	            File project = new File(projectAbsolutePath);
+            String uploadPath = project.getParent()+S+TOP+S+modelDirName+S+catalog;
+            if(!cancel&&StringUtils.isNotBlank(fileId)){
+            	uploadPath += S+fileId;
+            }
+	        File file = new File(uploadPath);
+	        File pFile = null;
+	        if (file.exists() && file.isFile()) {
+	        	pFile = file.getParentFile();
+	           	file.delete();
+			}else{
+				if(file.exists()&&file.isDirectory()){
+					pFile = file;
+				}
+			}
+	        if(null!=pFile){
+	        	if(cancel){
+	        		for (File tmp : pFile.listFiles()) {
+	        			tmp.delete();
+	        		}
+	        		pFile.delete();
+	        	}else if(pFile.listFiles().length==0){
+	        		pFile.delete();
+	        	}
+	        }
+		} catch (Exception e) {
+			logger.error("文件及文件夹删除失败"+e.getMessage());
+			return false;
+		}
+		return true;
+	}
+	
+//	/**
+//	 * 删除单条文图导航记录
+//	 * @date 2017年4月24日 下午5:15:54
+//	 * @author 胡毅
+//	 * @param imageId
+//	 */
+//	@RequestMapping("/deleteInEdit")
+//	@ResponseBody
+//	public boolean gisImageRecordDelete(@RequestParam(value="imageId",required=true)String imageId,
+//			@RequestParam(value="fileNameFloder",required=true)String fileNameFloder,HttpServletRequest request){
+//		try {
+//			InsPointImageEntity old =  pointImageService.findOne(InsPointImageEntity.class, imageId);
+//			boolean f = pointImageService.delete(InsPointImageEntity.class, imageId);
+//			if(f){
+//				String webappsAbs = CommonUtils.getWebappsAbsolutePath(request);
+//				String filePath = webappsAbs+old.getImgPath()+SEP+old.getImgName();
+//				UploadFileUtil.deleteFile(filePath);
+//				return true;
+//			}else{
+//				return false;
+//			}
+//		} catch (Exception e) {
+//			return false;
+//		}
+//	}
+	
+	/**
+	 * 异步上传图文导航文件
+	 * @date 2017年4月22日 下午2:19:05
+	 * @author 胡毅
+	 * @param request
+	 * @param modelDirName 模块文件夹名称，上传时定义（模块文件夹名应该唯一）
+	 * @param catalog 该批次上次文件批次时间戳，由前台自动生成
+	 * 描述：/uploadFiles/{modelDirName}/{catalog}/{newName}.{suffix}
+	 *     /uploadFiles/{modelDirName}/{catalog}/{oldName}.{suffix}
+	 * @return
+	 */
+	@RequestMapping("/upload")
+	@ResponseBody
+	public String gisImageUpload(HttpServletRequest request,
+				@RequestParam(required=true,value="module")String modelDirName,
+				@RequestParam(required=true,value="catalogId")String catalog){
+		String result = "";
+		try{
+            String projectAbsolutePath = request.getSession().getServletContext().getRealPath("\\");
+            File project = new File(projectAbsolutePath);
+            String uploadPath = project.getParent()+S+TOP+S+modelDirName+S+catalog;
+            File file = new File(uploadPath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver(request.getSession().getServletContext());
+            if(multipartResolver.isMultipart(request)){
+                MultipartHttpServletRequest multiRequest = (MultipartHttpServletRequest) request;
+                Iterator<String> iter = multiRequest.getFileNames();
+                while(iter.hasNext()) {
+                    List<MultipartFile> files = multiRequest.getFiles((String)iter.next());
+                    for (MultipartFile multipartFile : files) {
+                        String oldName = multipartFile.getOriginalFilename();
+                        String onlyName = oldName.substring(0, oldName.indexOf("."));
+                        String onlySuffix = oldName.substring(oldName.indexOf(".")+1, oldName.length());
+                        String newName = String.valueOf(new Date().getTime()) ;
+                        File localFile = new File(uploadPath + S + newName+"."+onlySuffix);
+                        multipartFile.transferTo(localFile);
+                		CustomFileBean data = new CustomFileBean();
+                		// 标准数据返回格式
+                        data.setFileId(newName);
+                        data.setSuccess(true);
+                        data.setMsg(new String("上传成功".getBytes("UTF-8"),"ISO8859-1"));
+                        data.setOldName(new String(onlyName.getBytes("UTF-8"),"ISO8859-1"));
+                        data.setSize(multipartFile.getSize());
+                        data.setSuffix(onlySuffix);
+                        data.setLocalPath( S+TOP + S+modelDirName+S+catalog+S + newName+"."+onlySuffix);
+                		result = new Gson().toJson(data);
+                    }
+                }
+            }
+        }catch (Exception e){
+            logger.error("文件上上传出错："+e.getMessage());
+        }
+		return result;
+	}
+	
+	@RequestMapping("/testUploadCustomFileBeanData")
+	@ResponseBody
+	public void testUploadCustomFileBeanData(String list){
+		List<CustomFileBean> listBean = new Gson().fromJson(list,new TypeToken<List<CustomFileBean>>() {}.getType());
+		System.out.println(list);
+	}
+	
+}

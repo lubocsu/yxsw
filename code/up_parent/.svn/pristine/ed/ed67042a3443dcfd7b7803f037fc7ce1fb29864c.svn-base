@@ -1,0 +1,108 @@
+/**
+ * 
+ */
+var grid = null;
+
+function initComplete(){
+	initGrid(params);
+}
+//初始化Grid处理
+function initGrid(params) {
+	grid = $("#dataBasic").quiGrid({
+		columns:[
+			{ display: '配置名称',	name: 'temp_name',	align: 'left', width: "30%"},
+			    { display: '配置版本',	name: 'temp_version',	align: 'center', width: 80},
+			    { display: '创建时间',	name: 'create_timestemp',	align: 'center', width: "15%", type:"date"},
+			    { display: '创建人',	name: 'creator_name', align: 'center', width: "10%"},
+			    { display: '修改时间',	name: 'update_timestemp',	align: 'center', width: "15%", type:"date"},
+			    { display: '修改人',	name: 'updator_name', align: 'center', width: "10%"},
+			    { display: '所属单位',	name: 'belong_wsc_name', align: 'center', width: "20%"},
+			    { display: '操作',	isAllowHide: false, align: 'center', width:80,
+					render: function (rowdata, rowindex, value, column){
+	            	   var html = '<div class="padding_top4 padding_left5">';
+	            	   html += '<span class="img_list hand" title="查看" onclick="toView(\'' + rowdata.temp_id + '\')"></span>';
+	                   if(isModifyAble){
+	                	   html += '<span class="img_edit hand" title="修改" onclick="toEdit(\'' + rowdata.temp_id + '\')"></span>';
+	                   }
+	                   /*if(isRemoveAble){
+	                	   html += '<span class="img_delete hand" title="删除" onclick="toDel(\'' + rowdata.freq_segment_id + '\',\'' + rowdata.update_timestemp + '\')"></span>';
+	                   }*/
+	                   + '</div>';
+	                   return html;
+	                }
+	           }
+		  ],
+	 url:path+"/zypTemp/getZypTempList",
+	 params:params,
+	 rownumbers:true,
+	 sortName:'create_timestemp',
+	 sortOrder:'desc',
+	 checkbox:true,selectRowButtonOnly:false,
+     height: '100%', width:"100%", pageSize:20, percentWidthMode:true,
+     toolbar:{
+    	 items:[
+		      {text: '新增', click: toAdd, iconClass: 'icon_add',visible:true},
+		      { line : true }
+    		]
+     	}
+	});
+}
+
+//时间格式化
+$.quiDefaults.Grid.formatters['date'] = function (value, column) {
+  return dateStr2Str(value,"$1-$2-$3 $4:$5");
+}
+
+//查询
+function searchHandler(){
+	var query = $("#queryForm").formToArray(); 
+	grid.setOptions({ params : query});
+	//页号重置为1
+	grid.setNewPage(1);
+	//刷新表格数据 
+	grid.loadData();
+}
+
+//重置查询
+function resetSearch(){
+	$("#queryForm")[0].reset();
+	$("#queryForm input").val("");
+	$("#queryForm select").attr("selectedValue","");
+	$("#queryForm select").resetValue();
+	$("#queryForm .selectTree").attr("selectedValue","");
+	$("#queryForm .selectTree").resetValue();
+	searchHandler();
+}
+
+//
+function toAdd(){
+	if(grid.getData().length > 0){
+		Dialog.alert("只可配置一个厂巡作业票");
+	}else{
+		location.href = path + "/zypTemp/toAddZypTemp" + "?backURL=" + getBackUrl($("#queryForm"), grid);
+	}
+}
+
+function toView(tempId){
+	location.href = path + "/zypTemp/toViewZypTemp" + "?backURL=" + getBackUrl($("#queryForm"), grid) + "&tempId=" + tempId;
+}
+
+function toEdit(tempId){
+	location.href = path + "/zypTemp/toEditZypTemp" + "?backURL=" + getBackUrl($("#queryForm"), grid) + "&tempId=" + tempId + "&yy=true";
+}
+
+function toDel(tempId, timestamp){
+	 Dialog.confirm("确定要删除吗？",function(){
+         $.post(path+"/zypTemp/doDelTemp",
+                 { "freqId" : freqId,"updateTimestemp":timestamp},
+                 function(result){
+                     if(result.flag){
+                    	 Dialog.alert(result.message);
+                    	 grid.loadData();
+                     }else{
+                    	 Dialog.alert(result.message);
+                     }
+                 },
+                 "json");
+     });
+}

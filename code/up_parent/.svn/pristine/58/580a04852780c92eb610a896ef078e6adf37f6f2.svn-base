@@ -1,0 +1,168 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.system.util.MapUtil;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.dao.BizTXjZypCxMakeDAO;
+import com.upsoft.yxsw.dao.BizTXjZypCxMakeTmpDAO;
+import com.upsoft.yxsw.dao.BizTXjZypCxMakeTmpItemDAO;
+import com.upsoft.yxsw.entity.BizTXjZypCxMakeTmp;
+import com.upsoft.yxsw.entity.BizTXjZypCxMakeTmpItem;
+import com.upsoft.yxsw.mobile.bean.zyp.CxMakeDetailBean;
+import com.upsoft.yxsw.mobile.bean.zyp.CxMakeListBean;
+import com.upsoft.yxsw.mobile.bean.zyp.ZbPlanInCXMakeBean;
+import com.upsoft.yxsw.mobile.bean.zyp.ZbPlanInCXMakeDetailBean;
+import com.upsoft.yxsw.service.BizTXjZypCxMakeService;
+
+
+@Service
+public class BizTXjZypCxMakeServiceImpl extends BaseServiceImpl implements BizTXjZypCxMakeService {
+
+	@Autowired
+	private BizTXjZypCxMakeDAO bizTXjZypCxMakeDAO;
+	@Autowired
+	private BizTXjZypCxMakeTmpDAO bizTXjZypCxMakeTmpDAO;
+	@Autowired
+	private BizTXjZypCxMakeTmpItemDAO bizTXjZypCxMakeTmpItemDAO;
+	@Autowired
+	private JdbcTemplate jdbcTemplate; 
+	
+	private String NVL(Object o){ return null!=o?o.toString():""; }
+	
+	@Override
+	public Map<String,Object> getZYPListForAPP(PageBean pageBean, String csOrgId) {
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT T.CX_MAKE_ID,T.ZYP_DATE,T.ZYP_CODE,T.FZR_NAME,T.BELONG_WSC_NAME  FROM BIZ_T_XJ_ZYP_CX_MAKE T WHERE 1=1");
+		sql.append(" AND T.CXZYP_STATUS='"+Constant.ZYP_STAUTS.AUDITED.getValue()+"' AND T.BELONG_WSC_ID='"+csOrgId+"'");
+		List<Map<String,Object>> list =  bizTXjZypCxMakeDAO.queryListBySql(sql.toString(),pageBean.getStartIndex(), pageBean.getPageSize(), new HashMap<String,Object>());
+		long total = bizTXjZypCxMakeDAO.queryCountBySql("SELECT COUNT(0) FROM ("+sql+")", new HashMap<String,Object>());
+		Map<String,Object> data = new HashMap<String,Object>();
+		data.put("total", total);
+		List<CxMakeListBean> result = new ArrayList<CxMakeListBean>();
+		for (Map<String, Object> map : list) {
+			CxMakeListBean tmp = new CxMakeListBean();
+			tmp.setCxMakeId(NVL(map.get("cx_make_id")));
+			tmp.setZypDate(DateUtil.stringToString(NVL(map.get("zyp_date")), "yyyyMMdd", "yyyy-MM-dd"));
+			tmp.setZypCode(NVL(map.get("zyp_code")));
+			tmp.setFzrName(NVL(map.get("fzr_name")));
+			tmp.setBelongWscName(NVL(map.get("belong_wsc_name")));
+			result.add(tmp);
+		}
+		data.put("list", result);
+		return data;
+	}
+
+	@Override
+	public CxMakeDetailBean getZYPDetail(String cxMakeId) {
+		// 获取作业票基本信息
+		String baseInfoSql = "SELECT T.ZYP_DATE,T.ZYP_CODE,T.FZR_NAME  FROM BIZ_T_XJ_ZYP_CX_MAKE T WHERE T.CX_MAKE_ID='"+cxMakeId+"'";
+		List<Map<String,Object>> baseInfo = bizTXjZypCxMakeDAO.queryListBySql(baseInfoSql, new HashMap<String,Object>());
+		Map<String,Object> baseInfoMap = baseInfo.get(0);
+		// 获取作业票指标组
+		String makeTmpSql = "SELECT T.MAKE_TMP_ID, T.CX_MAKE_ID, T.ZXP_TEMP_ITM_ID, T.ZXP_TEMP_ITM_NAME, T.JLXDZ, T.JLSBZ, T.JLQCL, T.BYZD, T.ZXP_TEMP_SORT"
+						 + " FROM BIZ_T_XJ_ZYP_CX_MAKE_TMP T WHERE T.CX_MAKE_ID='"+cxMakeId+"'";
+		List<BizTXjZypCxMakeTmp> makeTmpList = bizTXjZypCxMakeTmpDAO.queryListBySql(makeTmpSql,  new HashMap<String,Object>(), BizTXjZypCxMakeTmp.class);
+		// 获取指标组具体指标
+		for (BizTXjZypCxMakeTmp cxMakeTmp : makeTmpList) {
+			String cxMakeItemSql = "SELECT T.MAKE_TMP_ITEM_ID, T.MAKE_TMP_ID, T.CXZB_ID, T.CXZB_NAME, T.CXZB_JC, T.JLXDZ, T.JLXDZFD, T.JLSBZ, T.JLQCL, T.BYZD FROM BIZ_T_XJ_ZYP_CX_MAKE_TMP_ITEM T "
+								 + " WHERE T.MAKE_TMP_ID='"+cxMakeTmp.getMakeTmpId()+"'";
+			List<BizTXjZypCxMakeTmpItem> makeTmpItemList = bizTXjZypCxMakeTmpItemDAO.queryListBySql(cxMakeItemSql, new HashMap<String,Object>(), BizTXjZypCxMakeTmpItem.class);
+			cxMakeTmp.setMakeTmpItemList(makeTmpItemList);
+		}
+		
+		// 获取班次 yyyyMMdd
+		String zbDate = NVL(baseInfoMap.get("zyp_date"));
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT PD.DETAIL_NAME, PD.TECHNICS_NAME, PDP.PERSON_NAME");
+		sql.append("  FROM BIZ_T_XJ_ZB_PLAN_DETAIL PD,");
+		sql.append("       (SELECT REPLACE(WM_CONCAT(TMP.PERSON_NAME), ',', '，') PERSON_NAME,");
+		sql.append("               TMP.PLAN_DETAIL_ID");
+		sql.append("          FROM BIZ_T_XJ_ZB_PLAN_DETAIL_PERSON TMP");
+		sql.append("         GROUP BY TMP.PLAN_DETAIL_ID) PDP");
+		sql.append(" WHERE PD.PLAN_DETAIL_ID = PDP.PLAN_DETAIL_ID");
+		sql.append("   AND PD.ZB_PLAN_ID IN (SELECT P.ZB_PLAN_ID");
+		sql.append("                           FROM BIZ_T_XJ_ZB_PLAN P");
+		sql.append("                          WHERE P.ZB_DATE = '"+zbDate+"')");
+		List<Map<String,Object>> zbPlanDetailList = jdbcTemplate.queryForList(sql.toString());
+		List<ZbPlanInCXMakeBean> zbPlanList = new ArrayList<ZbPlanInCXMakeBean>();
+		Map<String,List<ZbPlanInCXMakeDetailBean>> zbPlanDetailMap = new HashMap<String,List<ZbPlanInCXMakeDetailBean>>();
+		for (Map<String, Object> map : zbPlanDetailList) {
+			List<ZbPlanInCXMakeDetailBean> tmpList = null;
+			if(zbPlanDetailMap.containsKey(NVL(map.get("DETAIL_NAME")))){
+				tmpList = zbPlanDetailMap.get(NVL(map.get("DETAIL_NAME")));
+			}else{
+				tmpList = new ArrayList<ZbPlanInCXMakeDetailBean>();
+			}
+			ZbPlanInCXMakeDetailBean tmp = new ZbPlanInCXMakeDetailBean();
+			tmp.setEchnicsName(NVL(map.get("TECHNICS_NAME")));
+			tmp.setPersonName(NVL(map.get("PERSON_NAME")));
+			tmpList.add(tmp);
+			zbPlanDetailMap.put(NVL(map.get("DETAIL_NAME")), tmpList);
+		}
+		for (String key : zbPlanDetailMap.keySet()) {
+			ZbPlanInCXMakeBean zbPlan = new ZbPlanInCXMakeBean();
+			zbPlan.setZbPlanName(key);
+			zbPlan.setZbDetailList(zbPlanDetailMap.get(key));
+			zbPlanList.add(zbPlan);
+		}
+		
+		
+		CxMakeDetailBean detail = new CxMakeDetailBean();
+		
+		detail.setFzrName(NVL(baseInfoMap.get("fzr_name")));
+		detail.setWarning(NVL(baseInfoMap.get("warning")));
+		detail.setZypCode(NVL(baseInfoMap.get("zyp_code")));
+		detail.setZypDate(DateUtil.stringToString(zbDate, "yyyyMMdd", "yyyy-MM-dd"));
+		detail.setMakeTmpList(makeTmpList);
+		detail.setZbPlanList(zbPlanList);
+		
+		return detail;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Object> getCxMakeList(PageBean pageBean, Map<String, Object> paramMap) {
+		StringBuilder sql = new StringBuilder();
+		Map<String,Object> params = new HashMap<String,Object>();
+		sql.append("SELECT T.CX_MAKE_ID, T.ZYP_DATE, T.ZYP_CODE, T.WARNING, T.WEATHER, T.BYZD, T.TEMP_VERSION, T.CXZYP_STATUS, T.FZR_ID, T.FZR_NAME, T.ZYP_DESC, T.TBRY_ID, T.TBRY_NAME, T.CREATOR_TIMESTEMP, T.BELONG_WSC_ID, T.BELONG_WSC_NAME, T.UPDATOR_ACCOUNT, T.UPDATOR_NAME, T.UPDATE_TIMESTEMP");
+		sql.append("      FROM  BIZ_T_XJ_ZYP_CX_MAKE T WHERE 1=1 ");
+		if(MapUtil.hasParam(paramMap, "cxzypStatus")){
+			// 作业票状态要求为List<String>
+			sql.append(" AND T.CXZYP_STATUS IN (:cxzypStatus)");
+			params.put("cxzypStatus", paramMap.get("cxzypStatus"));
+		}
+		if(MapUtil.hasParam(paramMap, "zypDate")){
+			sql.append("  AND T.ZYP_DATE=:zypDate");
+			params.put("zypDate", paramMap.get("zypDate"));
+		}
+		if(MapUtil.hasParam(paramMap, "zypCode")){
+			sql.append("  AND T.ZYP_CODE=:zypCode");
+			params.put("zypCode", paramMap.get("zypCode"));
+		}
+		Map<String, Object> result = bizTXjZypCxMakeDAO.queryPaginationListBySql(sql.toString(), params, pageBean);
+		List<Map<String,Object>> rows = (List<Map<String, Object>>) result.get("rows");
+		Map<String, Object> cxzypStatusDictMap = ServiceReceiver.getDictKeyValueMap(DictConstant.ZYP_STATUS.getValue());
+		
+		// 将字典编码写文名称,随便格式化数据
+		for (Map<String, Object> map : rows) {
+			map.put("cxzyp_status_name", cxzypStatusDictMap.get("cxzyp_status"));
+			map.put("zyp_date",DateUtil.stringToString(NVL(map.get("zyp_date")),"yyyyMMdd", "yyyy-MM-dd"));
+		}
+		
+		return result;
+	}
+	
+}

@@ -1,0 +1,3 @@
+expdp swjt_yxsw/swjt_yxsw@127.0.0.1/orcl schemas=inspis dumpfile=SWJT_YXSW_INIT20170824.dmp directory=DUMP_DIR
+
+impdp swjt_yxsw/swjt_yxsw@127.0.0.1/orcl remap_schema=swjt_yxsw:swjt_yxsw remap_tablespace=USERS:SWJT_YXSW,INSPIS:SWJT_YXSW,SYSTEM:SWJT_YXSW,TEMP:SWJT_YXSW_TEMP dumpfile=SWJT_YXSW_INIT20170824.dmp directory=DUMP_DIR

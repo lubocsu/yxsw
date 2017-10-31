@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 下拉框，下拉树支撑数据配置sql的 -->
+<root>
+	<data id="sysUser">
+		select userid as id, username as name from sys_user
+	</data>
+	<data id="dict">
+		select code as id, data1 as name from sys_dict_tree_data
+	</data>
+	
+	<data id="dict4Order">
+		select code as id, data1 as name from sys_dict_tree_data where parentnodeid = 'D000007' and code in ('1','8','9') order by orderno
+	</data>
+</root>

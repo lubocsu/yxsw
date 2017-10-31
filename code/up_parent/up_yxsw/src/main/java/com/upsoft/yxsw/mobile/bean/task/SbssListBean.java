@@ -1,0 +1,253 @@
+package com.upsoft.yxsw.mobile.bean.task;
+
+import java.io.Serializable;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：SbssListBean.java<br>
+* 摘要：任务列表中设备设施List Bean<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月23日<br>
+ */
+public class SbssListBean implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	private String ttaskItemSbssId;
+	/**
+	 * 任务巡检点表ID
+	 */
+	private String taskItemId;
+	/**
+	 * 类型 1设备，2设施
+	 */
+	private String detailType;
+	/**
+	 * 设备或设施ID
+	 */
+	private String sbssId;
+	/**
+	 * 设备或设施名称
+	 */
+	private String name;
+	/**
+	 * 是否必扫标签:1是 0否
+	 */
+	private String mustScan;
+	/**
+	 * 确认方式： 1 正常扫描 2无法扫描
+	 */
+	private String ewmConfirmedType;
+	/**
+	 * 是否已完成:1是 0否
+	 */
+	private String haveComplete;
+	/**
+	 * 操作时间 精确到秒
+	 */
+	private String optTime;
+	/**
+	 * 是否有问题 1是 0否 巡检选择此设备的最终检查是否存在问题，后期可能要推送机修
+	 */
+	private String sfFault;
+	/**
+	 * 巡检说明
+	 */
+	private String xjDesc;
+
+	private String sbssCode; // 设备设施编码
+	private String sbSort; // 设备类别，设施为空
+	private String sbTypeName; // 设备类型，设施为空
+	private String sbxh; // 设备型号，设施为空
+	private String zyStatusName ;// 设备在用状态，设施为空
+	private String ssLayer; // 设施层级关系，设备为空
+	
+	/**
+	 * 设置ID
+	 */
+	public void setTtaskItemSbssId(String ttaskItemSbssId) {
+		this.ttaskItemSbssId = ttaskItemSbssId;
+	}
+
+	/**
+	 * 获取ID
+	 */
+	public String getTtaskItemSbssId() {
+		return ttaskItemSbssId;
+	}
+
+	/**
+	 * 设置任务巡检点表ID
+	 */
+	public void setTaskItemId(String taskItemId) {
+		this.taskItemId = taskItemId;
+	}
+
+	/**
+	 * 获取任务巡检点表ID
+	 */
+	public String getTaskItemId() {
+		return taskItemId;
+	}
+
+	/**
+	 * 设置类型 1设备，2设施
+	 */
+	public void setDetailType(String detailType) {
+		this.detailType = detailType;
+	}
+
+	/**
+	 * 获取类型 1设备，2设施
+	 */
+	public String getDetailType() {
+		return detailType;
+	}
+
+	/**
+	 * 设置设备或设施ID
+	 */
+	public void setSbssId(String sbssId) {
+		this.sbssId = sbssId;
+	}
+
+	/**
+	 * 获取设备或设施ID
+	 */
+	public String getSbssId() {
+		return sbssId;
+	}
+
+	/**
+	 * 设置设备或设施名称
+	 */
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	/**
+	 * 获取设备或设施名称
+	 */
+	public String getName() {
+		return name;
+	}
+
+	/**
+	 * 设置是否必扫标签:1是 0否
+	 */
+	public void setMustScan(String mustScan) {
+		this.mustScan = mustScan;
+	}
+
+	/**
+	 * 获取是否必扫标签:1是 0否
+	 */
+	public String getMustScan() {
+		return mustScan;
+	}
+
+	/**
+	 * 设置确认方式： 1 正常扫描 2无法扫描
+	 */
+	public void setEwmConfirmedType(String ewmConfirmedType) {
+		this.ewmConfirmedType = ewmConfirmedType;
+	}
+
+	/**
+	 * 获取确认方式： 1 正常扫描 2无法扫描
+	 */
+	public String getEwmConfirmedType() {
+		return ewmConfirmedType;
+	}
+
+	/**
+	 * 设置是否已完成:1是 0否
+	 */
+	public void setHaveComplete(String haveComplete) {
+		this.haveComplete = haveComplete;
+	}
+
+	/**
+	 * 获取是否已完成:1是 0否
+	 */
+	public String getHaveComplete() {
+		return haveComplete;
+	}
+
+	public void setOptTime(String optTime) {
+		this.optTime = optTime;
+	}
+
+	public String getOptTime() {
+		return optTime;
+	}
+
+
+	public void setSfFault(String sfFault) {
+		this.sfFault = sfFault;
+	}
+
+	public String getSfFault() {
+		return sfFault;
+	}
+
+	public void setXjDesc(String xjDesc) {
+		this.xjDesc = xjDesc;
+	}
+
+	public String getXjDesc() {
+		return xjDesc;
+	}
+
+	public String getSbssCode() {
+		return sbssCode;
+	}
+
+	public void setSbssCode(String sbssCode) {
+		this.sbssCode = sbssCode;
+	}
+
+	public String getSbSort() {
+		return sbSort;
+	}
+
+	public void setSbSort(String sbSort) {
+		this.sbSort = sbSort;
+	}
+
+	public String getSbTypeName() {
+		return sbTypeName;
+	}
+
+	public void setSbTypeName(String sbTypeName) {
+		this.sbTypeName = sbTypeName;
+	}
+
+	public String getSbxh() {
+		return sbxh;
+	}
+
+	public void setSbxh(String sbxh) {
+		this.sbxh = sbxh;
+	}
+
+	public String getZyStatusName() {
+		return zyStatusName;
+	}
+
+	public void setZyStatusName(String zyStatusName) {
+		this.zyStatusName = zyStatusName;
+	}
+
+	public String getSsLayer() {
+		return ssLayer;
+	}
+
+	public void setSsLayer(String ssLayer) {
+		this.ssLayer = ssLayer;
+	}
+}

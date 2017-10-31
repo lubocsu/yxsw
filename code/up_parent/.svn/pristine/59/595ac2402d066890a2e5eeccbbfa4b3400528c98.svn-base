@@ -1,0 +1,63 @@
+package com.upsoft.yxsw.mobile.bean.zyp;
+
+import java.io.Serializable;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：CxMakeListBean.java<br>
+* 摘要：已下达作业票列表bean<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：胡毅<br>
+* 完成日期：2017年9月28日<br>
+ */
+public class CxMakeListBean implements Serializable {
+
+	private static final long serialVersionUID = 8861365928911633679L;
+
+	private String cxMakeId; // 
+	private String zypDate;
+	private String zypCode;
+	private String fzrName;
+	private String belongWscName;
+	private String zypStatus;
+	
+	public String getCxMakeId() {
+		return cxMakeId;
+	}
+	public void setCxMakeId(String cxMakeId) {
+		this.cxMakeId = cxMakeId;
+	}
+	public String getZypDate() {
+		return zypDate;
+	}
+	public void setZypDate(String zypDate) {
+		this.zypDate = zypDate;
+	}
+	public String getZypCode() {
+		return zypCode;
+	}
+	public void setZypCode(String zypCode) {
+		this.zypCode = zypCode;
+	}
+	public String getFzrName() {
+		return fzrName;
+	}
+	public void setFzrName(String fzrName) {
+		this.fzrName = fzrName;
+	}
+	public String getBelongWscName() {
+		return belongWscName;
+	}
+	public void setBelongWscName(String belongWscName) {
+		this.belongWscName = belongWscName;
+	}
+	public String getZypStatus() {
+		return zypStatus;
+	}
+	public void setZypStatus(String zypStatus) {
+		this.zypStatus = zypStatus;
+	}
+}

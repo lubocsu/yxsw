@@ -1,0 +1,157 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib uri="http://java.sun.com/jstl/fmt_rt" prefix="fmt"%>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>详情</title>
+<!--分离模式框架必需start-->
+<script type="text/javascript" src="${path }/libs/js/jquery.js"></script>
+<script type="text/javascript" src="${path }/libs/js/language/cn.js"></script>
+<script type="text/javascript" src="${path }/libs/js/framework.js"></script>
+<link href="${path }/libs/css/import_basic.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" type="text/css" id="skin" prePath="${path }/" splitMode="true" href="${path }/libs/skins/blue/style.css"/>
+<link rel="stylesheet" type="text/css" id="customSkin" href="${path }/system/layout/skin/style.css"/>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+<!--分离模式框架必需end-->
+<!-- 日期选择框start -->
+<script type="text/javascript" src="${path}/libs/js/form/datePicker/WdatePicker.js"></script>
+<!--树组件start -->
+<script type="text/javascript" src="${path}/libs/js/tree/ztree/ztree.js"></script>
+<link href="${path}/libs/js/tree/ztree/ztree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="${path}/libs/js/form/selectTree.js"></script>
+<!-- 表单验证start -->
+<script src="${path }/libs/js/form/validationRule.js" type="text/javascript"></script>
+<script src="${path }/libs/js/form/validation.js" type="text/javascript"></script>
+<!-- 表单验证end -->
+<!--弹窗组件start-->
+<script type="text/javascript" src="${path }/libs/js/popup/drag.js"></script>
+<script type="text/javascript" src="${path }/libs/js/popup/dialog.js"></script>
+<!--弹窗组件end-->
+<script type="text/javascript">
+	jQuery(function(){
+		
+			putList();
+			
+		/***解决core中定义的td样式影响qui的td样式***/
+		  jQuery(".mainCon td .selectbox").parent().css("width","auto");
+		  jQuery(".mainCon td .selBtn").css("height","auto");
+		  jQuery(".mainCon td .selBtn").css("width","11px");
+		  
+		jQuery(".to_hide_over_content").on("click",function(){
+			var tipicon = jQuery.trim(jQuery(this).find("span:eq(2)").text());
+			if(tipicon=="∨"){
+				
+				jQuery(this).find("span:eq(0)").text("展开");
+				jQuery(this).find("span:eq(2)").text("∧");
+				jQuery(this).next(".detail-list").hide();
+			}else{
+				jQuery(this).find("span:eq(0)").text("隐藏");
+				jQuery(this).find("span:eq(2)").text("∨");
+				jQuery(this).next(".detail-list").show();
+			}
+		});
+	});
+	
+	function back(){
+		location.href = "${path}/zbPlan/init";
+	}
+	function putList(){
+		var jsonStr1 = '${bcJson }';
+		var objBc = 	$.parseJSON(jsonStr1);
+		var jsonStr2 = '${gydJson }';
+		var objGyd = 	$.parseJSON(jsonStr2);
+		var jsonStr3 = '${maps }';
+		var objInfo = 	$.parseJSON(jsonStr3);
+		
+		var listul = $("#pbTable");
+		var list = '<tr  style="background-color: #c6e5fb;">';
+		list += '<td  style="width:10%;color: #006699;">工艺段名称</td>';
+		for(var i =0 ; i < objBc.length;i++){
+			list += '<td style="width:10%;color: #006699;">'+objBc[i].detail_name+'(负责人)</td>';
+		}
+		list += '</tr>';
+		for(var i =0 ; i < objGyd.length;i++){
+			list += '<tr>';
+			list += '<td align="center">'+objGyd[i].technics_name+'</td>';
+			for(var j =0 ; j < objBc.length;j++){
+				list += '<td style="padding:0px;">';
+				var ids = objGyd[i].technics_id + objBc[j].detail_id;
+// 				for(var m =0 ; m < objInfo.length;i++){
+// 					if(objInfo[m].idNum == ids){
+						list += objInfo[ids];
+// 					}
+// 				}
+				list += '</td>';
+			}
+			list += '</tr>';
+		}
+		listul.append(list);
+	}	
+</script>
+<style type="text/css">
+	.selectbox{width:180px !important;}
+	#pbTable tr td{border: 1px solid #abc1cc;text-align: center;}
+	#pbTable tr td{width: auto;}
+</style>
+</head>
+<body>
+	<div class="details-max">
+		<div class="list-content">
+			<form id="myFormId" action="" method="post" target="frmright">
+	    	 <div class="details-container">
+	         	<div class="task-detail">
+	            	 <span class="detail-title">
+	                	 厂巡排班信息
+	                 </span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div> 
+		                 <table class="detail-list" >
+		                 	<tr>
+		                 		<th>排班日期：</th>
+		                 		<td>
+		                 			<fmt:parseDate value="${bizTXjZbPlan.zbDate }"  var="zbDate" pattern="yyyyMMdd"/>
+									<fmt:formatDate value="${zbDate }" pattern="yyyy-MM-dd"/>
+		                 		</td>
+		                 	</tr>
+		                 	<tr>
+		                 		<th>值班开始时间：</th>
+		                 		<td>
+		                 			<fmt:parseDate value="${bizTXjZbPlan.startTime }"  var="startTime" pattern="yyyyMMddHHmm"/>
+									<fmt:formatDate value="${startTime }" pattern="yyyy-MM-dd HH:mm"/>
+		                 		</td>
+		                 		<th >值班结束时间：</th>
+		                 		<td >
+		                 			<fmt:parseDate value="${bizTXjZbPlan.endTime }"  var="endTime" pattern="yyyyMMddHHmm"/>
+									<fmt:formatDate value="${endTime }" pattern="yyyy-MM-dd HH:mm"/>
+		                 		</td>
+		                 	</tr>
+		                 </table>
+	            	</div>
+	            	<div class="task-detail">
+	            	 <span class="detail-title">
+	                	负责人信息
+	                 </span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div> 
+		                 <table class="detail-list" id="pbTable" align="center" style="width:100%;">
+		                 </table>
+	            	</div>
+	         	</div>
+			</form>
+		</div>
+		<!-- 底部按钮 -->
+		<div class="list-btm">
+	    	<div class="list-btm-div">
+	            <div class="div-btn-sbt">
+	            	<button class="btm-button" type="button"  onclick="javascript:location.href='${backURL}'"><span class="back-icon">返回</span></button>
+	            </div>
+	        </div>
+	    </div>
+     </div>
+</body>
+</html>

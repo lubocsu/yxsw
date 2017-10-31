@@ -1,0 +1,91 @@
+package com.upsoft.login.filter;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.upsoft.login.constant.LoginConstant;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+
+/**
+ * ClassName: LoginHandlerInterceptor <br/>
+ * Description:  登陆拦截器：验证用户是否登陆<br/>
+ * @date: 2015年1月20日 下午6:11:30 <br/>
+ * @author WX
+ * @version 
+ * @JDK 1.6
+ */
+public class LoginHandlerInterceptor implements HandlerInterceptor {
+	
+	private Logger logger = Logger.getLogger(LoginHandlerInterceptor.class);
+
+	private String[] allowUrls;
+	public void setAllowUrls(String[] allowUrls) {
+		this.allowUrls = allowUrls;
+	}
+	//登陆URL
+	private String loginUrl;
+	public void setLoginUrl(String loginUrl) {
+		this.loginUrl = loginUrl;
+	}
+	//FIXME 登陆JSP地址,应用于子系统有自己的登录页面时，在toLogin时跳转到登录页面。现阶段所有spring拦截器配置的登录页面的路径都是/system/login/login，其他见LoginController184行
+	private String loginJspPath;
+	public void setLoginJspPath(String loginJspPath) {
+		this.loginJspPath = loginJspPath;
+	}
+
+	@Override
+	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+			throws Exception {
+		
+	}
+
+	@Override
+	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView ex) throws Exception {
+
+
+	}
+	
+	@Override
+	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+		String queryString = request.getQueryString();
+		String servletPath = request.getServletPath();
+		logger.debug("当前handle上下文环境："+request.getContextPath()+"\n\t servletPath:"+servletPath);
+		if(allowUrls != null && allowUrls.length>0){
+			for(String url : allowUrls){
+				if(servletPath.startsWith(url)) {    
+					return true;    
+				}
+			}
+		}
+		/**
+		 * 用于跳转到另一个上下时因为session中无用户信息，会跳转到该上下文的toLogin方法，这个时候再次验证tokenId,成功后直接跳转到本次需要跳转的页面即KEY_FOR_TRANS_URL
+		 * 若验证不成功，则跳转到本上下文的登录页面即KEY_FOR_LOGIN_JSP_PATH
+		 */
+		request.setAttribute(LoginConstant.KEY_FOR_TRANS_URL, servletPath + "?" + queryString);
+		request.setAttribute(LoginConstant.KEY_FOR_LOGIN_JSP_PATH, loginJspPath);
+		Object loginInfo = SysUtils.getLoginInfo(request);
+		if(loginInfo == null){
+			request.getRequestDispatcher(loginUrl).forward(request, response);
+			return false;
+		}else{
+			String tokenId =  ((WSLoginInfoBean)loginInfo).getTokenId();
+			boolean isLogin = ServiceReceiver.checkLogin(tokenId);
+			if(!isLogin){
+				request.setAttribute("tokenInvalided",LoginTipMsgConstants.LOGIN_EXPIRED);
+				request.getSession().removeAttribute(CommonConstant.KEY_FOR_SYSUSER);
+				request.getRequestDispatcher(loginUrl).forward(request, response);
+				return false;
+			}
+		}
+		return true;
+	}
+
+}

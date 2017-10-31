@@ -1,0 +1,290 @@
+package com.upsoft.yxsw.controller;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Repository;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.upsoft.login.controller.BaseController;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTGgCheckItem;
+import com.upsoft.yxsw.entity.BizTGgSbssAttachBase;
+import com.upsoft.yxsw.entity.BizTSbBaseinfo;
+import com.upsoft.yxsw.entity.BizTSsBaseinfo;
+import com.upsoft.yxsw.service.BizTGgCheckItemService;
+import com.upsoft.yxsw.service.BizTGgSbssAttachBaseService;
+import com.upsoft.yxsw.service.BizTGgWarningManageService;
+import com.upsoft.yxsw.service.BizTSbBaseinfoService;
+import com.upsoft.yxsw.service.BizTSsBaseinfoService;
+/**
+ * 
+* Copyright (c) 2017,重庆扬讯软件技术有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：SsCheckController.java<br>
+* 摘要：设施关联检查项<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.1.1<br>
+* 作者：杨磊<br>
+* 完成日期：2017年9月18日<br>
+* -------------------------------------------------------<br>
+* 取代版本：1.1.0<br>
+* 原作者：杨磊<br>
+* 完成日期：2017年9月18日<br>
+ */
+@Controller
+@RequestMapping(SsCheckController.FORWARD_PREFIX)
+public class SsCheckController extends BaseController {
+	protected static final String  FORWARD_PREFIX="/SsCheck";
+	protected static final String  JSP_PR="/WEB-INF/jsp/SsCheck";
+	private static final String ORG_TYPE="3";
+	protected Logger logger=Logger.getLogger(SsCheckController.class);
+	@Autowired
+    private  BizTSbBaseinfoService  bizTSbBaseinfoService;//设备信息
+	@Autowired
+	private  BizTGgSbssAttachBaseService   bizTGgSbssAttachBaseService ;//设备信息与检查项的关系
+	@Autowired
+	private  BizTGgWarningManageService bizTGgWarningManageService  ;//安全警告
+	@Autowired
+	private BizTGgCheckItemService  bizTGgCheckItemService;//检查项
+	@Autowired
+	private BizTSsBaseinfoService  bizTSsBaseinfoService ;//设施
+	
+	 @RequestMapping("/init")
+	 public String init(){
+		
+		return JSP_PR+"/main";
+	}
+	
+	
+	@RequestMapping("/getTree")
+	@ResponseBody
+	public List<Map<String, Object>> getSSTree(HttpServletRequest request) {
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		String csOrgId = "";
+		String csOrgTypeId ="" ;
+		
+		String csOrgIdSelect = WebUtils.findParameterValue(request,"csOsrg");
+		String value = WebUtils.findParameterValue(request, "value");
+		if(null!=value&&StringUtils.isNotBlank(value)){
+			csOrgId=value;
+			csOrgTypeId="3";
+		}else{
+			csOrgId = loginInfo.getCsOrgId();
+			csOrgTypeId = loginInfo.getCsOrgTypeId();
+			
+		}
+		Map<String, Object> param = new HashMap<String, Object>();
+		//List<Map<String, Object>> types = bizTSsBaseinfoService.getTree(loginInfo.getCsOrgId(),loginInfo.getCsOrgTypeId());
+		List<Map<String, Object>> types1 = bizTSsBaseinfoService.getTree(csOrgId, csOrgTypeId, param);
+		for (Map<String, Object> map : types1) {
+
+			if (map.get("has_attach").toString().equals("1")) {// 通过判断has_attach来渲染颜色
+																 												 
+				Map<String, Object> mapColor = new HashMap<String, Object>();
+				mapColor.put("color", "green");
+				map.put("font", mapColor);
+				map.put("parentId", map.get("parentid"));
+				map.remove("parentid");
+
+			} else {
+				map.put("parentId", map.get("parentid"));
+				map.remove("parentid");
+
+			}
+		}
+		return types1;
+	}
+	@RequestMapping("/showDetail")
+	public String showDetail(@RequestParam(required = true)String ssId,String parentName ,ModelMap map,HttpServletRequest request){
+		BizTSsBaseinfo entity = bizTSsBaseinfoService.findOne(BizTSsBaseinfo.class,ssId);
+		String layer = entity.getLayer();
+		//查询层级关系
+		Map<String,Object> layerNames = bizTSsBaseinfoService.getSSLayer(layer);
+		map.put("parentName", parentName);
+		map.put("layerName",layerNames.get("layername"));
+		map.put("ssItem", entity);
+		map.put("byzdName", ServiceReceiver.getDictValue1(DictConstant.CHECKITEM_SFMR.getValue(), entity.getByzd()).get(entity.getByzd()));
+		WSLoginInfoBean sysUser = SysUtils.getLoginInfo(request);
+		String typeId = sysUser.getCsOrgTypeId();
+		map.put("typeId", typeId);
+		return JSP_PR+"/detail";
+	}
+	
+	  @SuppressWarnings("unchecked")
+	  @RequestMapping("/getList")
+	  @ResponseBody
+	  public Map<String,Object> getWarningList(HttpServletRequest  request,ModelMap map){
+		  
+		    String code = WebUtils.findParameterValue(request, "ssId");
+		    PageBean bean = new PageBean(request);
+			Map<String, Object> par = new HashMap<String, Object>();
+			par.put("code", code);
+
+			Map<String, Object> warningListAndCount =  bizTGgSbssAttachBaseService.getSsListAndCount(
+					par, bean);
+			List<Map<String, Object>> list = (List<Map<String, Object>>) warningListAndCount
+					.get("rows");
+			long count = (Long) warningListAndCount.get(PageBean.TOTAL);
+
+			Map<String, Object> resultData = new HashMap<String, Object>();
+			
+			resultData.put("pager.pageNo", 1);
+			resultData.put("pager.pageSize", 20);
+			resultData.put("pager.totalRows", count);
+			resultData.put("rows", list);
+			return resultData;
+	  }
+	 /**
+	  * 批量删除通过检查项id物理删除设施检查项关联表
+	  * @date 2017年9月19日 上午9:41:32
+	  * @author 杨磊
+	  * @param request
+	  * @return
+	  */
+	  @RequestMapping("/delOne")
+	  @ResponseBody
+	  public ResultBean delOne(HttpServletRequest request){
+		  Map<String, Object> map=new HashMap<String,Object>();
+		  String ids = WebUtils.findParameterValue(request, "ids");
+		  ResultBean bean=new ResultBean();
+		   try {
+			   bizTGgSbssAttachBaseService.deleteALL(ids);
+			   bean.setMessage("删除成功");
+		} catch (Exception e) {
+			 bean.setMessage("删除失败");
+			 bean.setFlag(false);
+			 logger.error(e.getMessage());
+		}
+		   return bean;
+	  }
+	  @RequestMapping("/toAddCheck")
+		public String toAddCheck(HttpServletRequest request, ModelMap map) {
+			String code = WebUtils.findParameterValue(request, "ssId");
+			Map<String, Object> hashMap = new HashMap<String, Object>();
+			hashMap.put("code", code);
+			map.addAttribute("code", hashMap);
+			return JSP_PR + "/add";
+
+		}
+	  
+	  /**
+	   * 获取未被关联的检查项
+	   * @date 2017年9月19日 上午9:55:11
+	   * @author 杨磊
+	   * @param request
+	   * @param map
+	   * @return
+	   */
+	  @SuppressWarnings("unchecked")
+	  @RequestMapping("/getUnCheckList")
+	  @ResponseBody
+	  public Map<String,Object> getUnCheckList(HttpServletRequest  request,ModelMap map){ 
+		String code = WebUtils.findParameterValue(request, "ssId");
+		String checkCode = WebUtils.findParameterValue(request, "code");
+		PageBean bean = new PageBean(request);
+		Map<String, Object> par = new HashMap<String, Object>();
+		par.put("code", code);
+		par.put("checkCode", checkCode);
+
+		Map<String, Object> warningListAndCount = bizTGgSbssAttachBaseService.getNoCheckListAndCount(par, bean);
+		List<Map<String, Object>> list = (List<Map<String, Object>>) warningListAndCount.get("rows");
+		long count = (Long) warningListAndCount.get(PageBean.TOTAL);
+
+		Map<String, Object> resultData = new HashMap<String, Object>();
+
+		resultData.put("pager.pageNo", 1);
+		resultData.put("pager.pageSize", 10);
+		resultData.put("pager.totalRows", count);
+		resultData.put("rows", list);
+		return resultData;
+	  }
+	  /**
+	   * 添加组装实体到BizTGgSbssAttachBase中
+	   * @date 2017年10月23日 上午10:31:01
+	   * @author 杨磊
+	   * @param request
+	   * @return
+	   */
+	  @RequestMapping("addUnit")
+	  @ResponseBody
+	public Map<String, Object> addUnit(HttpServletRequest request) {
+		Map<String, Object> hashMap = new HashMap<String, Object>();
+		String ssId = WebUtils.findParameterValue(request, "ssId");
+		String ckIds = WebUtils.findParameterValue(request, "ids");
+		String[] strings = ckIds.split(",");
+		for (String ckId : strings) {
+			try {
+
+				BizTGgCheckItem ckEntity = bizTGgCheckItemService.findOne(BizTGgCheckItem.class, ckId);
+
+				BizTSsBaseinfo ssEntity = bizTSsBaseinfoService.findOne(BizTSsBaseinfo.class, ssId);
+
+				BizTGgSbssAttachBase attachBaseEntity = new BizTGgSbssAttachBase();
+
+				String ssId2 = ssEntity.getSsId();
+
+				attachBaseEntity.setCode(ssId2);
+				attachBaseEntity.setSbOrSs("2");
+				attachBaseEntity.setConfDesc(ckEntity.getCheckItemDesc());
+				attachBaseEntity.setDetailId(ckEntity.getCheckItemId());
+				SysUser user = SysUtils.getLoginSysUser(request);
+
+				attachBaseEntity.setCreatorAccount(user.getUserId());
+				attachBaseEntity.setCreatorName(user.getUserName());
+				attachBaseEntity.setBelongDept(user.getOrgId());
+
+				Date date = new Date();
+				String timestemp = DateUtil.dateToString(date, DateUtil.DATE_FULL_FORMAT_N);
+				attachBaseEntity.setCreateTimestemp(timestemp);
+				attachBaseEntity.setConfType("1");
+
+				bizTGgSbssAttachBaseService.save(attachBaseEntity);
+				hashMap.put("status", 1);
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return hashMap;
+	}
+
+		@RequestMapping("/getSupportData")
+		@ResponseBody
+		public List<Map<String, Object>> getSelectSupport(HttpServletRequest request){
+			//获取用户信息
+			WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+			List<Map<String, Object>> org = ServiceReceiver.iterateOrgById(loginInfo.getCsOrgId());
+			List<Map<String, Object>> orgs = new ArrayList<Map<String,Object>>();
+			for (Map<String, Object> map : org) {
+				String  orgTypeId = map.get("orgtypeid").toString();
+				if(ORG_TYPE.equals(orgTypeId)){
+					Map<String,Object> orgMap = new HashMap<String, Object>();
+					orgMap.put("key", map.get("orgid"));
+					orgMap.put("value", map.get("orgname"));
+					orgs.add(orgMap);
+				}
+			}
+			return orgs;
+		}
+}

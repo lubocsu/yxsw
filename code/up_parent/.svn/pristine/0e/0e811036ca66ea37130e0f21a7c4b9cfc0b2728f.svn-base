@@ -1,0 +1,122 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>设备档案管理</title>
+		<!-- 框架分离模式start -->
+		<link rel="stylesheet" type="text/css" href="${path }/libs/css/import_basic.css"/>
+		<link rel="stylesheet" type="text/css" id="skin" prePath="${path }/" splitMode="true" href="${path }/libs/skins/blue/style.css"/>
+		<link rel="stylesheet" type="text/css" id="customSkin" href="${path }/system/layout/skin/style.css"/>
+		<script type="text/javascript" src="${path }/libs/js/jquery.js"></script>
+		<script type="text/javascript" src="${path }/libs/js/language/cn.js"></script>
+		<script type="text/javascript" src="${path }/libs/js/framework.js"></script>
+		<!--布局控件start-->
+		<script type="text/javascript" src="${path}/libs/js/nav/layout.js"></script>
+		<!--数据表格start-->
+		<script src="${path}/libs/js/table/quiGrid.js" type="text/javascript"></script>
+		<!-- 表单start -->
+		<script src="${path}/libs/js/form/form.js" type="text/javascript"></script>
+		<!--弹窗组件start-->
+		<script type="text/javascript" src="${path}/libs/js/popup/drag.js"></script>
+		<script type="text/javascript" src="${path}/libs/js/popup/dialog.js"></script>
+		<!-- 日期选择框start -->
+		<script type="text/javascript" src="${path}/libs/js/form/datePicker/WdatePicker.js"></script>
+		<!-- 树组件start -->
+		<script type="text/javascript" src="${path}/libs/js/tree/ztree/ztree.js"></script>
+		<link type="text/css" rel="stylesheet" href="${path}/libs/js/tree/ztree/ztree.css"></link>
+		<!-- 树形下拉框start -->
+		<script type="text/javascript" src="${path }/libs/js/form/selectTree.js"></script>
+		
+		<script type="text/javascript" src="${path }/js/eq_info/eq_list.js"></script>
+		<script type="text/javascript" src="${path }/js/yxsw-common.js"></script>
+		<script type="text/javascript" src="${path }/js/plug-in/stringutil.js"></script>
+		
+		<script type="text/javascript">
+			var path = "${path}";
+			//按钮权限
+			var isRemoveAble = '${KEY_FOR_IN_MENU_PERMISSION.remove }'== '0' ? false : true; 
+			var isAddAble = '${KEY_FOR_IN_MENU_PERMISSION.add }'== '0' ? false : true;   
+			var isModifyAble = '${KEY_FOR_IN_MENU_PERMISSION.modify }'== '0' ? false : true; 
+			
+			var params = [
+							{name:"sbName",value:"${sbName }"},
+							{name:"factoryName",value:"${factoryName }"},
+							{name:"sbSort",value:"${sbSort }"},
+							{name:"sbTypeId",value:"${sbTypeId }"},
+							/* {name:"gcjk",value:"${gcjk }"}, */
+							{name:"zyStatus",value:"${zyStatus }"},
+							{name:"isZxcjy",value:"${isZxcjy }"}
+					];
+			// 新增一个是否显示工具条参数，在设施关联设备时将传递showToolBar=false参数，表示不需要工具条，其他情况不传递该参数即可使用工具条 by hy 2017.09.17 
+			var showToolBar = "${showToolBar}"==""?true:false;
+			// 新增ssId参数，用于设施关联设备时隐藏已关联设备数据，其他情况请不要传递该参数，如果你需要的话也可以by hy 2017.09.17
+			var ssId = "${ssId}";
+			if(strNVL(ssId)){
+				params.push({name:'ssId',value:ssId});
+			}
+			
+			var EQ_TYPE = JSON.parse('${EQ_TYPE }');
+			var GC_JK = JSON.parse('${GC_JK }');
+			var ZY_STATUS = JSON.parse('${ZY_STATUS }');
+		</script>
+	</head>
+	
+ 	<body>
+	  	<div id="layout1">
+			<div id="centerCon" position="center" style="">
+	        	<div class="box2" panelTitle="查询" showStatus="false" boxtype="box2">
+					<form action="${path}/" id="queryForm" method="post">
+					<table style="width:100%">
+						<tr>
+							<td style="width:10%;text-align:right">设备名称：</td>
+							<td  style="width:15%;text-align:left"><input type="text" id="sbName" class="input119" name="sbName" value="${sbName }"/></td>
+							<td  style="width:10%;text-align:right">设备厂商：</td>
+							<td  style="width:15%;text-align:left"><input type="text" id="factoryName" class="input119" name="factoryName" value="${factoryName }"/></td>
+							<td  style="width:10%;text-align:right">在用状态：</td>
+							<td  style="width:15%;text-align:left"><select labelField="value" valueField="key" selWidth="143" name="zyStatus" prompt="请选择" selectedValue="${zyStatus }" url="${path}/platform/getSupportData" params='{"parentNodeId":"UM000005"}'></select></td>
+						</tr>
+						<tr>
+							<td  style="width:10%;text-align:right">设备类别：</td>
+							<td  style="width:15%;text-align:left"><select labelField="key" valueField="value" selWidth="143" name="sbSort" prompt="请选择" selectedValue="${sbSort }" url="${path}/platform/getSupportData" params='{"parentNodeId":"UM000002"}'></select></td>
+							<td  style="width:10%;text-align:right">设备类型：</td>
+							<td  style="width:15%;text-align:left"><div name="sbTypeId" class="selectTree" selWidth="143" selectedvalue="${sbTypeId }" boxHeight="200" url="${path }/equipmentType/getEqTypeTreeAll?clickExpand=false"></div></td>
+							<td  style="width:10%;text-align:right">是否在线仪器：</td>
+							<td  style="width:15%;text-align:left"><select labelField="value" valueField="key" selWidth="143" name="isZxcjy" prompt="请选择" selectedValue="${isZxcjy }" url="${path}/platform/getSupportData" params='{"parentNodeId":"UM000006"}'></select></td>
+							
+							<!-- <td  style="width:15%;text-align:left"  rowspan="2" valign="bottom" style="text-align:right"></td> -->
+							<td>
+								<button type="button" onclick="searchHandler()" id="search"><span class="icon_find">查询</span></button>
+								<button type="button" onclick="resetSearch()"><span class="icon_reload">重置</span></button>
+							</td>
+						</tr>
+						<%-- <tr>
+							<th  style="width:15%;text-align:right">国产进口：</th>
+							<td  style="width:20%;text-align:left"><select labelField="value" valueField="key" selWidth="143" name="gcjk" prompt="请选择" selectedValue="${gcjk }" url="${path}/platform/getSupportData" params='{"parentNodeId":"UM000001"}'></select></td>
+						</tr> --%>
+						<!-- <tr>
+							<th></th>
+							<td></td>
+							<th></th>
+							<td></td>
+							
+							<td  style="width:15%;text-align:left"></td>
+							<td rowspan="2" valign="bottom" style="text-align:right">
+								<button type="button" onclick="searchHandler()" id="search"><span class="icon_find">查询</span></button>
+								<button type="button" onclick="resetSearch()"><span class="icon_reload">重置</span></button>
+							</td>
+						</tr> -->
+					</table>
+					</form>
+				</div>
+				<div class="padding_right5">
+				
+					<div id="dataBasic"></div>
+				</div>
+	        </div>
+		</div>
+	</body>
+	
+</html>

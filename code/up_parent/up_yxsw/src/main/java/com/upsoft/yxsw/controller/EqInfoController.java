@@ -1,0 +1,401 @@
+package com.upsoft.yxsw.controller;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.ctc.wstx.evt.WEntityDeclaration;
+import com.google.gson.Gson;
+import com.upsoft.login.controller.BaseController;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.service.AttachmentService;
+import com.upsoft.system.util.BeanUtil;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTSbBaseinfo;
+import com.upsoft.yxsw.service.BizTSbBaseinfoService;
+import com.upsoft.yxsw.service.BizTXjCxTaskService;
+import com.upsoft.yxsw.service.EquipmentFactoryService;
+import com.upsoft.yxsw.service.EquipmentTypeService;
+
+/**
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ *
+ * 文件名称：BizTSbBaseinfoController.java<br>
+ * 摘要：<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.0<br>
+ * 作者：<br>
+ * 完成日期：2017-09-08 <br>
+ */
+@Controller
+@RequestMapping(EqInfoController.FORWARD_PREFIX)
+public class EqInfoController  extends BaseController {
+	
+	protected static final Logger logger = Logger.getLogger(EqInfoController.class);
+	protected static final String FORWARD_PREFIX = "/eqInfo";
+	private static final String JSP_PREFIX = "/WEB-INF/jsp/eq_info";
+	
+	@Autowired
+	public BizTSbBaseinfoService bizTSbBaseinfoService;
+	@Autowired
+	public EquipmentFactoryService factoryService;
+	@Autowired
+	public EquipmentTypeService eqTypeService;
+	@Autowired
+	private AttachmentService attachmentService;
+	@Autowired
+	private BizTXjCxTaskService bizTXjCxTaskService  ;
+	/**
+	 * 设备档案列表页
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/init")
+	public String init(HttpServletRequest request, ModelMap map){
+		super.findMenuResourcePermission(request, map);
+		map.addAllAttributes(WebUtils.getParametersStartingWith(request, null));
+		map.put("EQ_TYPE", new Gson().toJson(ServiceReceiver.getDictKeyValueMap(DictConstant.EQ_TYPE.getValue())));
+		map.put("GC_JK", new Gson().toJson(ServiceReceiver.getDictKeyValueMap(DictConstant.GC_JK.getValue())));
+		map.put("ZY_STATUS", new Gson().toJson(ServiceReceiver.getDictKeyValueMap(DictConstant.ZY_STATUS.getValue())));
+		return JSP_PREFIX + "/eq_list";
+	}
+	
+	
+	/**
+	 * @date 2017年9月9日 上午10:29:21
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/getEqList")
+	public Map<String,Object> getEqList(HttpServletRequest request, ModelMap map){
+		
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		PageBean bean = new PageBean(request);
+		Map<String, Object> params = new HashMap<String, Object>();
+		//设备名称
+		params.put("sbName", WebUtils.findParameterValue(request, "sbName"));
+		//设备类别
+		params.put("sbSort", WebUtils.findParameterValue(request, "sbSort"));
+		//是否在线采集仪
+		params.put("isZxcjy", WebUtils.findParameterValue(request, "isZxcjy"));
+		//设备类型ID
+		params.put("sbTypeId", WebUtils.findParameterValue(request, "sbTypeId"));
+		//国产进口
+		params.put("gcjk", WebUtils.findParameterValue(request, "gcjk"));
+		//在用状态
+		params.put("zyStatus", WebUtils.findParameterValue(request, "zyStatus"));
+		//设备厂商
+		params.put("factoryName", WebUtils.findParameterValue(request, "factoryName"));
+		if(StringUtils.equals(userLoginInfo.getCsOrgTypeId(), CommonConstant.orgType.FACTORY.getKey())){
+			params.put("orgCode", userLoginInfo.getCsOrgId());
+		}
+		// add by hy 2017.017 添加设施Id,用于设施关联设备时隐藏已关联设备数据
+		String ssId = WebUtils.findParameterValue(request, "ssId");
+		if(StringUtils.isNotBlank(ssId)){
+			params.put("ssId", ssId);
+		}
+		return bizTSbBaseinfoService.getList(bean, params);
+	}
+	
+	/**
+	 * 跳转设备档案新增页面
+	 * @date 2017年9月11日 上午11:12:40
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toAddEq")
+	public String toAddEq(HttpServletRequest request,ModelMap map){
+		
+		map.put("backURL", WebUtils.findParameterValue(request, "backURL"));
+		return JSP_PREFIX.concat("/eq_add");
+	}
+	
+	/**
+	 * 保存设备信息
+	 * @date 2017年9月9日 下午2:50:11
+	 * @param request
+	 * @param map
+	 * @param sbBaseinfo
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/saveEqInfo")
+	public ResultBean saveEqInfo(HttpServletRequest request,ModelMap map, BizTSbBaseinfo sbBaseinfo){
+		
+		ResultBean resultBean = new ResultBean();
+		Date date = new Date();
+		WSLoginInfoBean userLoginInfo = SysUtils.getLoginInfo(request);
+		sbBaseinfo.setCreateTimestemp(DateUtil.dateToString(date, DateUtil.DATE_FULL_FORMAT_N));
+		sbBaseinfo.setUpdateTimestemp(DateUtil.dateToString(date, DateUtil.DATE_FULL_FORMAT_N));
+		sbBaseinfo.setCreatorAccount(userLoginInfo.getUser().getUserId());
+		sbBaseinfo.setCreatorName(userLoginInfo.getUser().getUserName());
+		sbBaseinfo.setBelongWscId(userLoginInfo.getCsOrgId());
+		sbBaseinfo.setBelongWscName(userLoginInfo.getCsOrgName());
+		sbBaseinfo.setDelFlag(CommonConstant.STATUS_YoN.NO);
+		sbBaseinfo.setBuyDate(DateUtil.stringToString(sbBaseinfo.getBuyDate(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+		sbBaseinfo.setStartUseDate(DateUtil.stringToString(sbBaseinfo.getStartUseDate(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+		sbBaseinfo.setZjpgSj(DateUtil.stringToString(sbBaseinfo.getZjpgSj(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+		
+		String attachmentList = WebUtils.findParameterValue(request, "attachmentList");
+		
+		try {
+			bizTSbBaseinfoService.save(sbBaseinfo,attachmentList,userLoginInfo);
+			resultBean.setFlag(true);
+			resultBean.setMessage("新增成功");
+		} catch (Exception e) {
+			resultBean.setFlag(false);
+			resultBean.setMessage("修改失败");
+			logger.error("新增设备档案失败", e);
+		}
+		return resultBean;
+	}
+	
+	/**
+	 * 跳转到设备档案编辑页面
+	 * @date 2017年9月11日 上午11:12:28
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toEditEq")
+	public String toEditEq(@RequestParam(value="sbId",required=true)String sbId, HttpServletRequest request,ModelMap map){
+		
+		BizTSbBaseinfo sbBaseinfo = bizTSbBaseinfoService.getBizTSbBaseinfoById(sbId);
+		
+		sbBaseinfo.setBuyDate(DateUtil.stringToString(sbBaseinfo.getBuyDate(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		sbBaseinfo.setStartUseDate(DateUtil.stringToString(sbBaseinfo.getStartUseDate(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		sbBaseinfo.setZjpgSj(DateUtil.stringToString(sbBaseinfo.getZjpgSj(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		map.put("backURL", WebUtils.findParameterValue(request, "backURL"));
+		map.put("sbInfo", sbBaseinfo);
+		map.put("factory", factoryService.findOneById(sbBaseinfo.getManufactureId()));
+		//附件信息
+		map.put("attachmentList", attachmentService.getAttachmentList(sbBaseinfo.getSbId()));
+		return JSP_PREFIX.concat("/eq_edit");
+	}
+	
+	/**
+	 * 保存编辑后的设备档案信息
+	 * @date 2017年9月11日 下午8:00:10
+	 * @param request
+	 * @param map
+	 * @param sbBaseinfo
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/saveEditEq")
+	public ResultBean saveEditEq(HttpServletRequest request, ModelMap map, BizTSbBaseinfo sbBaseinfo){
+		
+		ResultBean result = new ResultBean();
+		WSLoginInfoBean loginInfoBean = SysUtils.getLoginInfo(request);
+		BizTSbBaseinfo oriBaseinfo = bizTSbBaseinfoService.getBizTSbBaseinfoById(sbBaseinfo.getSbId());
+		//附件
+		String attachmentList = WebUtils.findParameterValue(request, "attachmentList");
+		String delAttachmentList = WebUtils.findParameterValue(request, "delAttachmentList");
+		//验证数据是否已被删除或更新
+		if(null == oriBaseinfo || !StringUtils.equals(oriBaseinfo.getUpdateTimestemp(), sbBaseinfo.getUpdateTimestemp())){
+			result.setFlag(false);
+			result.setMessage("修改失败，数据已更新，请刷新后重试");
+		}else{
+			try {
+				
+				sbBaseinfo.setBuyDate(DateUtil.stringToString(sbBaseinfo.getBuyDate(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+				sbBaseinfo.setStartUseDate(DateUtil.stringToString(sbBaseinfo.getStartUseDate(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+				sbBaseinfo.setZjpgSj(DateUtil.stringToString(sbBaseinfo.getZjpgSj(), DateUtil.DATE_FORMAT_WITHOUT_TIME, DateUtil.DATE_FULL_FORMAT_N));
+				BeanUtil.copyPropertiesIgnoreNull(sbBaseinfo, oriBaseinfo);
+				oriBaseinfo.setUpdatorAccount(loginInfoBean.getUser().getUserId());
+				oriBaseinfo.setUpdatorName(loginInfoBean.getUser().getUserName());
+				oriBaseinfo.setUpdateTimestemp(DateUtil.dateToString(new Date(), DateUtil.DATE_FULL_FORMAT_N));
+				bizTSbBaseinfoService.save(oriBaseinfo, attachmentList, delAttachmentList, loginInfoBean);
+				result.setFlag(true);
+				result.setMessage("修改成功");
+			} catch (Exception e) {
+				result.setFlag(false);
+				result.setMessage("修改失败，系统发生错误");
+				logger.error("修改设备信息失败", e);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 跳转到查看设备信息页面
+	 * @date 2017年9月11日 下午8:35:55
+	 * @param sbId
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/toViewEq")
+	public String toViewEq(@RequestParam(value="sbId",required=true)String sbId, HttpServletRequest request,ModelMap map){
+		
+		BizTSbBaseinfo sbBaseinfo = bizTSbBaseinfoService.getBizTSbBaseinfoById(sbId);
+		
+		sbBaseinfo.setSbSort(StringUtils.isNotBlank(sbBaseinfo.getSbSort()) ? String.valueOf(ServiceReceiver.getDictValue1(DictConstant.EQ_TYPE.getValue(), sbBaseinfo.getSbSort()).get(sbBaseinfo.getSbSort())):"");
+		sbBaseinfo.setGcjk(StringUtils.isNotBlank(sbBaseinfo.getGcjk()) ? String.valueOf(ServiceReceiver.getDictValue1(DictConstant.GC_JK.getValue(), sbBaseinfo.getGcjk()).get(sbBaseinfo.getGcjk())):"");
+		sbBaseinfo.setIsZxcjy(StringUtils.isNotBlank(sbBaseinfo.getIsZxcjy()) ? String.valueOf(ServiceReceiver.getDictValue1(DictConstant.CHECKITEM_SFMR.getValue(), sbBaseinfo.getIsZxcjy()).get(sbBaseinfo.getIsZxcjy())):"");
+		sbBaseinfo.setZyStatus(StringUtils.isNotBlank(sbBaseinfo.getZyStatus()) ? String.valueOf(ServiceReceiver.getDictValue1(DictConstant.ZY_STATUS.getValue(), sbBaseinfo.getZyStatus()).get(sbBaseinfo.getZyStatus())):"");
+		sbBaseinfo.setByzd(StringUtils.isNotBlank(sbBaseinfo.getByzd()) ? String.valueOf(ServiceReceiver.getDictValue1(DictConstant.CHECKITEM_SFMR.getValue(), sbBaseinfo.getByzd()).get(sbBaseinfo.getByzd())):"");
+		
+		sbBaseinfo.setBuyDate(DateUtil.stringToString(sbBaseinfo.getBuyDate(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		sbBaseinfo.setStartUseDate(DateUtil.stringToString(sbBaseinfo.getStartUseDate(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		sbBaseinfo.setZjpgSj(DateUtil.stringToString(sbBaseinfo.getZjpgSj(), DateUtil.DATE_FULL_FORMAT_N, DateUtil.DATE_FORMAT_WITHOUT_TIME));
+		
+		map.put("backURL", WebUtils.findParameterValue(request, "backURL"));
+		map.put("sbInfo", sbBaseinfo);
+		map.put("factory", factoryService.findOneById(sbBaseinfo.getManufactureId()));
+		map.put("type", eqTypeService.findOne(sbBaseinfo.getSbTypeId()));
+		//附件信息
+		map.put("attachmentList", attachmentService.getAttachmentList(sbBaseinfo.getSbId()));
+		return JSP_PREFIX.concat("/eq_view");
+	}
+	
+	/**
+	 * 删除设备信息，为逻辑删除
+	 * @date 2017年9月11日 下午8:36:18
+	 * @param sbId
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/doDelEq")
+	public ResultBean doDelEq(@RequestParam(value="sbId",required=true)String sbId, @RequestParam(value="updateTimestemp",required=true)String updateTimestemp, HttpServletRequest request,ModelMap map){
+		
+		ResultBean result = new ResultBean();
+		BizTSbBaseinfo baseinfo = bizTSbBaseinfoService.getBizTSbBaseinfoById(sbId);
+		//验证数据是否已被删除或更新
+		if(null == baseinfo || !StringUtils.equals(updateTimestemp, baseinfo.getUpdateTimestemp())){
+			result.setFlag(false);
+			result.setMessage("删除失败，数据已更新，请刷新后重试");
+		}else{
+			try {
+				baseinfo.setDelFlag(CommonConstant.STATUS_YoN.YES);
+				bizTSbBaseinfoService.update(baseinfo);
+				result.setFlag(true);
+				result.setMessage("删除成功");
+			} catch (Exception e) {
+				result.setFlag(false);
+				result.setMessage("删除失败，系统发生错误");
+				logger.error("删除设备信息失败", e);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 验证设备编码是否已存在
+	 * @date 2017年9月11日 下午8:33:00
+	 * @param request
+	 * @param map
+	 * @param validateValue
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/validateEqCode")
+	public Map<String, Object> validateEqCode(HttpServletRequest request, ModelMap map, String validateValue){
+		
+		Map<String, Boolean> result = new HashMap<String, Boolean>();
+		Boolean isExists = bizTSbBaseinfoService.eqExists(validateValue);
+		
+		if(isExists){
+			result.put("valid", false);
+		}else{
+			result.put("valid", true);
+		}
+		
+		Map<String, Object> resultJson = new HashMap<String, Object>();
+		resultJson.put("validateResult", result);
+		return resultJson;
+	}
+	
+	
+    /**
+     * 跳转页面，带着sbId	
+     * @date 2017年10月16日 下午8:37:20
+     * @author 杨磊
+     * @param request
+     * @param map
+     * @return
+     */
+	@RequestMapping("/toMain")
+	public String getSbId(HttpServletRequest request,ModelMap map){
+		String sbId = WebUtils.findParameterValue(request, "sbId");
+		map.put("sbId", sbId);
+	    return JSP_PREFIX+"/main";
+	}
+	/**
+	 * 通过设备id查到改设备的巡检记录
+	 * @date 2017年10月16日 下午8:17:01
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/toWatchDetail")
+	@ResponseBody
+	public  Map<String,Object> toWatchDetail (HttpServletRequest request,ModelMap map){
+
+		PageBean bean = new PageBean(request);
+		String sbId = WebUtils.findParameterValue(request, "sbId");
+		Map<String, Object> sbXjList= bizTXjCxTaskService.getSbXj(sbId,bean);
+		List<Map<String, Object>> listSb = (List<Map<String, Object>>)  sbXjList.get("rows");
+		Map<String, Object> resultData = new HashMap<String, Object>();
+		Long count= (Long)  sbXjList.get(PageBean.TOTAL);
+		resultData.put("pager.pageNo", 1);
+		resultData.put("pager.pageSize", 20);
+		resultData.put("pager.totalRows", count);
+		resultData.put("rows", listSb);
+		return resultData;
+		
+	}
+	/**
+	 * 查看设施的巡检记录
+	 * @date 2017年10月18日 上午9:44:53
+	 * @author 杨磊
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/toWatchDetailSs")
+	@ResponseBody
+	public  Map<String,Object> toWatchDetailSs (HttpServletRequest request,ModelMap map){
+
+		PageBean bean = new PageBean(request);
+		String sbId = WebUtils.findParameterValue(request, "sbId");
+		Map<String, Object> sbXjList= bizTXjCxTaskService.getSbXj(sbId,bean);
+		List<Map<String, Object>> listSb = (List<Map<String, Object>>)  sbXjList.get("rows");
+		Map<String, Object> resultData = new HashMap<String, Object>();
+		Long count= (Long)  sbXjList.get(PageBean.TOTAL);
+		resultData.put("pager.pageNo", 1);
+		resultData.put("pager.pageSize", 20);
+		resultData.put("pager.totalRows", count);
+		resultData.put("rows", listSb);
+		return resultData;
+		
+	}
+}

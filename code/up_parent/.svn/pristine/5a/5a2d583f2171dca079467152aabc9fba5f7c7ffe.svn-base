@@ -1,0 +1,487 @@
+package com.upsoft.yxsw.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTSbTypesEntity;
+import com.upsoft.yxsw.service.EquipmentTypeService;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术股份有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：EqTypeManagementController.java<br>
+* 摘要：设备类型管理Controller<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.0<br>
+* 作者：陈涛<br>
+* 完成日期：2017年9月8日<br>
+* -------------------------------------------------------<br>
+*/
+
+@Controller
+@RequestMapping(EqTypeManagementController.FORWARD_PREFIX)
+public class EqTypeManagementController {
+
+	protected static final Logger logger = Logger.getLogger(EqTypeManagementController.class);
+	protected static final String FORWARD_PREFIX = "/equipmentType";
+	protected static final String JSP_PR = "/WEB-INF/jsp/equipmentType";
+	
+	@Autowired
+	private EquipmentTypeService equipmentTypeService;
+	
+	/**
+	 * 跳转到设备类型管理页面
+	 * 
+	 * @date 2017年9月8日 上午11:14:17
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/init")
+	public String init(HttpServletRequest request,ModelMap map){
+		return JSP_PR + "/main";
+	}
+	
+	/**
+	 * 获取设备类型树
+	 * 
+	 * @date 2017年9月8日 下午1:10:45
+	 * @author 陈涛
+	 * @param request
+	 * @return 
+	 */
+	@RequestMapping("/getEquipmentTypeTree")
+	@ResponseBody
+	public List<Map<String, Object>> getEquipmentTypeTree(HttpServletRequest request) {
+		Map<String,Object> params = new HashMap<String,Object>();
+//		params.put("isValid", Constant.IS_VALID);
+		List<Map<String, Object>> types = equipmentTypeService.queryByTreeId(params);
+		for (Map<String, Object> map : types) {
+			map.put("parentId", map.get("parentid"));
+			map.remove("parentid");
+		}
+		for (Map<String, Object> type : types) {
+			if(null != type.get("out_service")){
+				if(type.get("out_service").toString().equals(CommonConstant.STATUS_VALID)){
+					Map<String, Object> mapColor = new HashMap<String, Object>();
+					mapColor.put("color", "red");
+					type.put("font", mapColor);
+				}
+			}
+		}
+		return types;
+	}
+	
+	/**
+	 * 跳转到新增设备类型页面
+	 * 
+	 * @date 2017年9月8日 下午1:39:12
+	 * @author 陈涛
+	 * @param sbTypeId
+	 * @param name
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/addEquipmentType")
+	public String addEquipmentType(String sbTypeId ,String  name ,ModelMap map){
+		
+		Map<String,String> equipmentType = new HashMap<String,String>();
+		equipmentType.put("id", sbTypeId);
+		equipmentType.put("name", name);
+		map.put("equipmentType", equipmentType);
+		
+		//获取计量单位
+		map.put("unit", DictConstant.UNIT.getValue());
+		//获取是否停用
+		map.put("isStopUse", DictConstant.CHECKITEM_SFMR.getValue());
+		
+		return JSP_PR+"/addEquipmentType";
+	}
+	
+	/**
+	 * 执行设备类型新增
+	 * 
+	 * @date 2017年9月8日 下午3:47:29
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/doAddEquipmentType")
+	@ResponseBody
+	public Map<String, Object> doAddEquipmentType(HttpServletRequest request,ModelMap map){
+		
+		boolean flag = true;
+		//获取父ID
+		String parentId = WebUtils.findParameterValue(request, "parentId");
+		//获取设备类型名称
+		String name = WebUtils.findParameterValue(request, "name");
+		//获取类型编码
+		String code = WebUtils.findParameterValue(request, "code");
+		//获取计量单位
+		String unit = WebUtils.findParameterValue(request, "unit");
+		//获取排序号
+		String orders = WebUtils.findParameterValue(request, "orders");
+		//获取是否停用
+		String isStopUse = WebUtils.findParameterValue(request, "isStopUse");
+		//获取备注
+		String remark = WebUtils.findParameterValue(request, "remark");
+		
+		
+		Map<String, Object> msg = new HashMap<String,Object>();
+		//查询节点
+		List<Map<String,Object>> SbTypeList = equipmentTypeService.queryByTreeId(new HashMap<String,Object>());
+		for(Map<String,Object> sbMap : SbTypeList){
+			String mName = sbMap.get("name").toString();
+			String mCode = sbMap.get("code").toString();
+			if(name.equals(mName) || code.equals(mCode)){
+				flag = false;
+				break;
+			}else{
+				flag = true;
+				continue;
+			}
+		}
+		if(flag){
+			//获取用户信息
+			SysUser user = SysUtils.getLoginSysUser(request);
+			try{
+				BizTSbTypesEntity bizTSbTypesEntity = equipmentTypeService.saveEquipmentType(parentId,name,code,unit,orders,isStopUse,remark,user);
+				String equipmentTypeId = bizTSbTypesEntity.getSbTypeId();
+				msg.put("equipmentTypeId", equipmentTypeId);
+				msg.put("message", "保存类型信息成功");
+			}catch(Exception e){
+				msg.put("message", "保存类型信息失败");
+				logger.error("保存类型信息失败，" + e.getMessage());
+			}
+		}else{
+			msg.put("equipmentTypeId", parentId);
+			msg.put("message", "该类型名称或者类型编码已存在！");
+		}
+		return msg;
+	}
+	
+	/**
+	 * 获取设备类型详情
+	 * 
+	 * @date 2017年9月8日 下午5:36:48
+	 * @author 陈涛
+	 * @param materialid
+	 * @param parentName
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/showDetail")
+	public String showDetail(String sbTypeId,String parentName ,ModelMap map){
+		Map<String,Object> sbMap = new HashMap<String,Object>();
+		if(StringUtils.isNotBlank(sbTypeId)){
+			sbMap = equipmentTypeService.findOne(sbTypeId);
+			String sbLayer = sbMap.get("layer").toString();
+			//查询层级关系
+			Map<String,Object> layer = equipmentTypeService.getEquipmentTypeLayer(sbLayer);
+			map.put("parentName", parentName);
+			sbMap.put("layer",layer.get("layername"));
+		}
+		map.put("bizTSbTypesEntity", sbMap);
+		return JSP_PR+"/detail";
+	}
+	
+	/**
+	 * 跳转到修改设备类型页面
+	 * 
+	 * @date 2017年9月8日 下午7:28:09
+	 * @author 陈涛
+	 * @param equipmentTypeId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toModifyEquipmentType")
+	public String toModifyEquipmentType(String equipmentTypeId ,ModelMap map){
+		
+		Map<String,Object> equipmentType = new HashMap<String,Object>();
+		String parentName = null;
+		
+		equipmentType = equipmentTypeService.findOne(equipmentTypeId);
+		if(null != equipmentType.get("parent_type_id") && StringUtils.isNoneBlank(equipmentType.get("parent_type_id").toString())){
+			parentName = equipmentTypeService.findOne(equipmentType.get("parent_type_id").toString()).get("name").toString();
+		}
+		map.put("parentName", parentName);
+		map.put("equipmentType", equipmentType);
+		//获取计量单位
+		map.put("unit", DictConstant.UNIT.getValue());
+		//获取是否停用
+		map.put("isStopUse", DictConstant.CHECKITEM_SFMR.getValue());
+				
+		return JSP_PR+"/modifyEquipmentType";
+	}
+	
+	/**
+	 * 保存修改内容
+	 * 
+	 * @date 2017年9月8日 下午8:02:33
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/doModifyEquipmentType")
+	@ResponseBody
+	public Map<String, Object> doModifyEquipmentType(HttpServletRequest request,ModelMap map){
+		
+		boolean flag = true;
+		boolean flag2 = true;
+		//获取设备类型ID
+		String equipmentTypeId = WebUtils.findParameterValue(request, "sbTypeId");
+		//获取父ID
+		String parentId = WebUtils.findParameterValue(request, "parentId");
+		//获取设备类型名称
+		String name = WebUtils.findParameterValue(request, "name");
+		//获取类型编码
+		String code = WebUtils.findParameterValue(request, "code");
+		//获取计量单位
+		String unit = WebUtils.findParameterValue(request, "unit");
+		//获取排序号
+		String orders = WebUtils.findParameterValue(request, "orders");
+		//获取是否停用
+		String isStopUse = WebUtils.findParameterValue(request, "isStopUse");
+		//获取备注
+		String remark = WebUtils.findParameterValue(request, "remark");
+		
+		
+		Map<String, Object> msg = new HashMap<String,Object>();
+		Map<String, Object> sb = equipmentTypeService.findOne(equipmentTypeId);
+		String status = sb.get("out_service").toString();
+		if(!status.equals(isStopUse)){
+			List<BizTSbTypesEntity> list = equipmentTypeService.getSbListById(equipmentTypeId);
+			if(null != list && list.size()>0){
+				for (BizTSbTypesEntity bizTSbTypesEntity : list) {
+					String cOutService = bizTSbTypesEntity.getOutService().toString();
+					if(cOutService.equals(CommonConstant.STATUS_DISABLE)){
+						flag2 = false;
+						break;
+					}
+				}
+			}
+		}
+			if(flag2){
+				if(null != parentId && StringUtils.isNotBlank(parentId)){
+					Map<String,Object> pSbType = equipmentTypeService.findOne(parentId);
+					String pOutService = pSbType.get("out_service").toString();
+					if(pOutService.equals(CommonConstant.STATUS_VALID)){
+						msg.put("message", "父类型未启用，请先启用父类型！");
+					}else{
+						//查询所有节点
+						List<Map<String,Object>> sbTypeList = equipmentTypeService.queryByTreeId(new HashMap<String,Object>());
+						for(Map<String,Object> sbMap : sbTypeList){
+							String sbId = sbMap.get("id").toString();
+							if(sbId.equals(equipmentTypeId)){
+								flag = true;
+								continue;
+							}else{
+								String mName = sbMap.get("name").toString();
+								String mCode = sbMap.get("code").toString();
+								
+								if(name.equals(mName) || code.equals(mCode)){
+									flag = false;
+									break;
+								}else{
+									flag = true;
+									continue;
+								}
+							}
+						}
+						if(flag){
+							//获取用户信息
+							SysUser user = SysUtils.getLoginSysUser(request);
+							try{
+								equipmentTypeService.updateEquipmentType(equipmentTypeId,parentId,name,code,unit,orders,isStopUse,remark,user);
+								msg.put("message", "保存类型信息成功");
+							}catch(Exception e){
+								msg.put("message", "保存类型信息失败");
+								logger.error("设备类型修改失败，" + e.getMessage());
+							}
+						}else{
+							msg.put("message", "该类型名称或者类型编码已存在！");
+						}
+					}
+				}else{
+					//查询所有节点
+					List<Map<String,Object>> sbTypeList = equipmentTypeService.queryByTreeId(new HashMap<String,Object>());
+					for(Map<String,Object> sbMap : sbTypeList){
+						String sbId = sbMap.get("id").toString();
+						if(sbId.equals(equipmentTypeId)){
+							flag = true;
+							continue;
+						}else{
+							String mName = sbMap.get("name").toString();
+							String mCode = sbMap.get("code").toString();
+							
+							if(name.equals(mName) || code.equals(mCode)){
+								flag = false;
+								break;
+							}else{
+								flag = true;
+								continue;
+							}
+						}
+					}
+					if(flag){
+						//获取用户信息
+						SysUser user = SysUtils.getLoginSysUser(request);
+						try{
+							equipmentTypeService.updateEquipmentType(equipmentTypeId,parentId,name,code,unit,orders,isStopUse,remark,user);
+							msg.put("message", "保存类型信息成功");
+						}catch(Exception e){
+							msg.put("message", "保存类型信息失败");
+							logger.error("设备类型修改失败，" + e.getMessage());
+						}
+					}else{
+						msg.put("message", "该类型名称或者类型编码已存在！");
+					}
+				}
+			
+			}else{
+				msg.put("message", "子类型启用中，请先停用子类型！");
+			}
+		return msg;
+	}
+	
+	/**
+	 * 停用设备类型
+	 * 
+	 * @date 2017年9月9日 上午10:08:16
+	 * @author 陈涛
+	 * @param equipmentTypeId
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/delEquipmentType")
+	@ResponseBody
+	public Map<String, Object> delEquipmentType(String equipmentTypeId ,HttpServletRequest request,ModelMap map){
+		Map<String, Object> msg = new HashMap<String,Object>();
+		SysUser user = SysUtils.getLoginSysUser(request);
+		try{
+			equipmentTypeService.delEquipmentTypeById(equipmentTypeId,user);
+			msg.put("message", "停用成功");
+		}catch(Exception e){
+			msg.put("message", "停用失败");
+			logger.error("批量停用失败，" + e.getMessage());
+		}
+		return msg;
+	}
+	
+	/**
+	 * 获取当前状态为有效的设备类型树
+	 * @date 2017年9月13日 下午3:37:08
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getEqTypeTree")
+	@ResponseBody
+	public List<Map<String, Object>> getEqTypeTree(HttpServletRequest request) {
+		
+		Map<String,Object> params = new HashMap<String,Object>();
+		params.put("outService", CommonConstant.STATUS_YoN.NO);
+		List<Map<String, Object>> types = equipmentTypeService.queryByTreeId(params);
+		List<String> parentIdList = new ArrayList<>();
+		for (Map<String, Object> map : types) {
+			if(null != map.get("parentid")){
+				parentIdList.add(map.get("parentid").toString());
+			}
+			map.put("parentId", map.get("parentid"));
+			map.remove("parentid");
+		}
+		
+		//点击父节点是否展开，此时父节点不可被选中
+		boolean clickExpand = Boolean.valueOf(WebUtils.findParameterValue(request, "clickExpand")); 
+		if(clickExpand){
+			for (Map<String, Object> map : types) {
+				if(parentIdList.contains(map.get("id"))){
+					map.put("clickExpand", true);
+				}
+			}
+		}
+		return types;
+	}
+	
+	/**
+	 * 获取所有的类型，包括停用的
+	 * @date 2017年10月20日 下午3:09:27
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getEqTypeTreeAll")
+	@ResponseBody
+	public List<Map<String, Object>> getEqTypeTreeAll(HttpServletRequest request) {
+		
+		Map<String,Object> params = new HashMap<String,Object>();
+		List<Map<String, Object>> types = equipmentTypeService.queryByTreeId(params);
+		List<String> parentIdList = new ArrayList<>();
+		for (Map<String, Object> map : types) {
+			if(null != map.get("parentid")){
+				parentIdList.add(map.get("parentid").toString());
+			}
+			map.put("parentId", map.get("parentid"));
+			map.remove("parentid");
+		}
+		
+		//点击父节点是否展开，此时父节点不可被选中
+		boolean clickExpand = Boolean.valueOf(WebUtils.findParameterValue(request, "clickExpand")); 
+		if(clickExpand){
+			for (Map<String, Object> map : types) {
+				if(parentIdList.contains(map.get("id"))){
+					map.put("clickExpand", true);
+				}
+			}
+		}
+		return types;
+	}
+	
+	@RequestMapping("/getEquipmentTypeTreeParent")
+	@ResponseBody
+	public List<Map<String, Object>> getEquipmentTypeTreeParent(HttpServletRequest request) {
+
+		Map<String,Object> params = new HashMap<String,Object>();
+		params.put("outService", CommonConstant.STATUS_YoN.NO);
+		List<Map<String, Object>> types = equipmentTypeService.queryByTreeIdParent(params);
+		List<String> parentIdList = new ArrayList<>();
+		for (Map<String, Object> map : types) {
+			if(null != map.get("parentid")){
+				parentIdList.add(map.get("parentid").toString());
+			}
+			map.put("parentId", map.get("parentid"));
+			map.remove("parentid");
+		}
+		
+		//点击父节点是否展开，此时父节点不可被选中
+		boolean clickExpand = Boolean.valueOf(WebUtils.findParameterValue(request, "clickExpand")); 
+		if(clickExpand){
+			for (Map<String, Object> map : types) {
+				if(parentIdList.contains(map.get("id"))){
+					map.put("clickExpand", true);
+				}
+			}
+		}
+		return types;
+	}
+}

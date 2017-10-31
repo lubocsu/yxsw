@@ -1,0 +1,229 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.constant.CommonConstant;
+import com.upsoft.system.entity.SysUser;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.system.util.DateUtil;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.dao.EquipmentTypeDao;
+import com.upsoft.yxsw.entity.BizTSbTypesEntity;
+import com.upsoft.yxsw.service.EquipmentTypeService;
+
+@Service
+public class EquipmentTypeServiceImpl extends BaseServiceImpl implements EquipmentTypeService{
+
+	protected static final Logger logger = Logger.getLogger(EquipmentTypeServiceImpl.class);
+	@Autowired
+	private EquipmentTypeDao equipmentTypeDao;
+	
+	@Override
+	public List<Map<String, Object>> queryByTreeId(Map<String, Object> params) {
+		String sql = "SELECT T.SB_TYPE_ID ID,T.PARENT_TYPE_ID PARENTID,T.NAME NAME,T.LAYER LAYER,T.CODE,T.OUT_SERVICE FROM BIZ_T_SB_TYPES T WHERE  1=1 ";
+		if(null != params.get("outService") && StringUtils.isNotBlank(params.get("outService").toString())){
+			sql += " AND T.OUT_SERVICE = :outService";
+		}
+		sql += " START WITH ( T.PARENT_TYPE_ID IS NULL OR T.PARENT_TYPE_ID='') CONNECT  BY  PRIOR T.SB_TYPE_ID =  T.PARENT_TYPE_ID ORDER BY T.ORDERS ASC";
+		List<Map<String,Object>> list = equipmentTypeDao.queryListBySql(sql,params);
+		if(null!=list&& list.size()>0){
+			return list;
+		}else{
+			return new ArrayList<Map<String,Object>>();
+		}
+	}
+
+	@Override
+	public List<BizTSbTypesEntity> getEquipmentTypeByParentId(String parentId) {
+		String sql = "select * from BIZ_T_SB_TYPES t where 1=1 ";
+		if(StringUtils.isNotBlank(parentId)){
+			sql  += "and t.PARENT_TYPE_ID='"+parentId+"' ";
+		}else{
+			sql += " and t.PARENT_TYPE_ID is null";
+		}
+		return equipmentTypeDao.queryListBySql(sql, new HashMap<String,Object>(),BizTSbTypesEntity.class);
+	}
+
+	@Override
+	public BizTSbTypesEntity saveEquipmentType(String sbParentId, String name,String code, String unit, String orders, String isStopUse,
+			String remark, SysUser user) {
+		BizTSbTypesEntity bizTSbTypesEntity = new BizTSbTypesEntity();
+			bizTSbTypesEntity.setParentTypeId(sbParentId);
+			bizTSbTypesEntity.setName(name);
+			bizTSbTypesEntity.setCode(code);
+			bizTSbTypesEntity.setUnit(unit);
+			if(StringUtils.isNotBlank(orders)){
+				
+				bizTSbTypesEntity.setOrders((Long.parseLong(orders)));
+			}
+			if(StringUtils.isNotBlank(isStopUse)){
+				
+				bizTSbTypesEntity.setOutService((Long.parseLong(isStopUse)));
+			}
+			bizTSbTypesEntity.setRemark((remark));
+			bizTSbTypesEntity.setCreatorAccount(user.getUserId());
+			bizTSbTypesEntity.setUpdatorAccount(user.getUserId());
+			bizTSbTypesEntity.setUpdatorName((user.getUserName()));
+		//获取日期
+		Date date = new Date();
+		bizTSbTypesEntity.setCreateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+		bizTSbTypesEntity.setUpdateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+		String parentId = bizTSbTypesEntity.getParentTypeId();
+		
+		if(StringUtils.isNoneBlank(parentId)){
+			BizTSbTypesEntity pBizTSbTypesEntity = new BizTSbTypesEntity();
+			pBizTSbTypesEntity = equipmentTypeDao.findOne(parentId);
+			bizTSbTypesEntity.setLayer(pBizTSbTypesEntity.getLayer() + "." + bizTSbTypesEntity.getCode());
+		}else{
+			bizTSbTypesEntity.setLayer(bizTSbTypesEntity.getCode());
+		}
+		BizTSbTypesEntity rbizTSbTypesEntity = equipmentTypeDao.save(bizTSbTypesEntity);
+		
+		return rbizTSbTypesEntity;
+	}
+
+	@Override
+	public Map<String,Object> findOne(String sbTypeId) {
+		if(StringUtils.isNotBlank(sbTypeId)){
+			StringBuffer sql = new StringBuffer();
+			sql.append(" select D1.DATA1 unitname, D2.DATA1 outservicename, t.* ")
+			  .append(" from BIZ_T_SB_TYPES t")
+			  .append(" left join sys_dict_tree_data D1 ")
+			  .append(" on D1.PARENTNODEID = '"+ DictConstant.UNIT.getValue()+"' ")
+			  .append(" and D1.CODE = t.unit ")  
+			  .append(" left join sys_dict_tree_data D2 ")
+			  .append(" on D2.Parentnodeid = '"+ DictConstant.CHECKITEM_SFMR.getValue()+"' ")
+			  .append(" and D2.CODE = t.out_service ")  
+			  .append(" where  1=1 ");
+			 sql.append(" and t.sb_type_id = '"+sbTypeId+"'");
+			 List<Map<String,Object>> result = equipmentTypeDao.queryListBySql(sql.toString(), new HashMap<String,Object>());
+			 if(null != result && result.size()>0){
+				 return result.get(0);
+			 }else{
+				 return null;
+			 }
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Map<String, Object> getEquipmentTypeLayer(String sbLayer) {
+		Map<String,Object> layer = new HashMap<String,Object>();
+		StringBuilder list = new StringBuilder();
+		//通过点号分割层级关系
+		List<String> lists = Arrays.asList(sbLayer.split("\\."));
+		  if(null != lists && lists.size() > 0 ){
+		      boolean first = true;
+		      //第一个前面不拼接","
+		      for(String string :lists) {
+		    	  if(first) {
+		    		  first=false;
+		    	  }else{
+		    		  list.append(",");
+		    	  }
+		    	  list.append("'" + string + "'");
+		      }
+		   }
+		   
+		String sql = " SELECT REPLACE(WM_CONCAT(NAME),',','/') LAYERNAME FROM (SELECT T.NAME FROM BIZ_T_SB_TYPES T WHERE 1 = 1  AND T.CODE IN( "+ list +" ) ORDER BY T.ORDERS)";
+		List<Map<String,Object>> result = equipmentTypeDao.queryListBySql(sql, new HashMap<String,Object>());
+		if(null != result && result.size() > 0){
+			layer = result.get(0);
+		}else {
+			layer = null;
+		}
+		return layer;
+	}
+
+	@Override
+	public void updateEquipmentType(String equipmentTypeId,String sbParentId, String name, String code,
+			String unit, String orders, String isStopUse, String remark,
+			SysUser user) {
+		BizTSbTypesEntity bizTSbTypesEntity = new BizTSbTypesEntity();
+		if(null != equipmentTypeId ){
+			bizTSbTypesEntity = equipmentTypeDao.findOne(equipmentTypeId);
+		}
+			bizTSbTypesEntity.setParentTypeId(sbParentId);
+			bizTSbTypesEntity.setName(name);
+			bizTSbTypesEntity.setCode(code);
+			bizTSbTypesEntity.setUnit(unit);
+//			bizTSbTypesEntity.setOrders((Long.parseLong(orders)));
+//			bizTSbTypesEntity.setOutService((Long.parseLong(isStopUse)));
+			if(StringUtils.isNotBlank(orders)){
+				bizTSbTypesEntity.setOrders((Long.parseLong(orders)));
+			}else{
+				bizTSbTypesEntity.setOrders(null);
+			}
+			if(StringUtils.isNotBlank(isStopUse)){
+				bizTSbTypesEntity.setOutService((Long.parseLong(isStopUse)));
+			}
+			bizTSbTypesEntity.setRemark((remark));
+			bizTSbTypesEntity.setUpdatorAccount(user.getUserId());
+			bizTSbTypesEntity.setUpdatorName(user.getUserId());
+		if(StringUtils.isNotBlank(sbParentId)){
+			BizTSbTypesEntity pbizTSbTypesEntity = equipmentTypeDao.findOne(sbParentId);
+			bizTSbTypesEntity.setLayer(pbizTSbTypesEntity.getLayer() + "." + bizTSbTypesEntity.getCode());
+		}else{
+			bizTSbTypesEntity.setLayer(bizTSbTypesEntity.getCode());
+		}
+		//获取时间
+		Date date = new Date();
+		bizTSbTypesEntity.setUpdateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+		equipmentTypeDao.save(bizTSbTypesEntity);
+	}
+
+	@Override
+	public void delEquipmentTypeById(String equipmentTypeId, SysUser user) {
+		String sql = "SELECT * FROM BIZ_T_SB_TYPES T START WITH T.SB_TYPE_ID = '"+equipmentTypeId+"'  CONNECT  BY  PRIOR T.SB_TYPE_ID =  T.PARENT_TYPE_ID ORDER BY T.ORDERS DESC";
+		List<BizTSbTypesEntity> SbTypesList = equipmentTypeDao.queryListBySql(sql, new HashMap<String,Object>(), BizTSbTypesEntity.class);
+		String userId = user.getUserId();
+		String userName = user.getUserName();
+		Date date = new Date();
+		
+		for (BizTSbTypesEntity bizTSbTypesEntity : SbTypesList) {
+			bizTSbTypesEntity.setOutService(Long.parseLong(CommonConstant.STATUS_VALID));
+			bizTSbTypesEntity.setUpdatorAccount(userId);
+			bizTSbTypesEntity.setUpdatorName(userName);
+			bizTSbTypesEntity.setUpdateTimestemp(DateUtil.dateToString(date, "yyyyMMddHHmmss"));
+			
+			equipmentTypeDao.save(bizTSbTypesEntity);
+		}
+	}
+
+	@Override
+	public List<BizTSbTypesEntity> getSbListById(String equipmentTypeId) {
+		String sql = "SELECT * FROM BIZ_T_SB_TYPES T where t.sb_type_id != '"+ equipmentTypeId  +"'START WITH T.SB_TYPE_ID = '"+equipmentTypeId+"'  CONNECT  BY  PRIOR T.SB_TYPE_ID =  T.PARENT_TYPE_ID ORDER BY T.ORDERS DESC";
+		List<BizTSbTypesEntity> SbTypesList = equipmentTypeDao.queryListBySql(sql, new HashMap<String,Object>(), BizTSbTypesEntity.class);
+		
+		return SbTypesList;
+	}
+
+	@Override
+	public List<Map<String, Object>> queryByTreeIdParent(
+			Map<String, Object> params) {
+		String sql = "SELECT T.SB_TYPE_ID ID,T.PARENT_TYPE_ID PARENTID,T.NAME NAME,T.LAYER LAYER,T.CODE,T.OUT_SERVICE FROM BIZ_T_SB_TYPES T WHERE  1=1 ";
+		if(null != params.get("outService") && StringUtils.isNotBlank(params.get("outService").toString())){
+			sql += " AND T.OUT_SERVICE = :outService";
+		}
+		sql += " START WITH ( T.PARENT_TYPE_ID IS NULL ) CONNECT  BY  PRIOR T.SB_TYPE_ID =  T.PARENT_TYPE_ID ORDER BY T.ORDERS ASC";
+		List<Map<String,Object>> list = equipmentTypeDao.queryListBySql(sql,params);
+		if(null!=list&& list.size()>0){
+			return list;
+		}else{
+			return new ArrayList<Map<String,Object>>();
+		}
+	}
+	
+
+}

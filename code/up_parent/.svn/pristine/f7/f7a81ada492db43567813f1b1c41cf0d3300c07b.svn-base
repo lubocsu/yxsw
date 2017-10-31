@@ -1,0 +1,153 @@
+package com.upsoft.yxsw.mobile;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.ResultBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.system.constant.LoginTipMsgConstants;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.constant.DictConstant;
+import com.upsoft.yxsw.entity.BizTXjdItem;
+import com.upsoft.yxsw.service.BizTXjdItemService;
+
+
+@Controller
+@RequestMapping(BindingRfidController.FORWARD_PREFIX)
+public class BindingRfidController {
+	
+	protected static final String FORWARD_PREFIX = "/mobile/bindingRfid";
+	protected static final String JSP_PR = "/WEB-INF/mobile/bindingRfid";
+	
+	@Autowired
+	public BizTXjdItemService bizTXjdItemService;
+	
+	
+	/**
+	 * 跳转到列表页面
+	 * 
+	 * @date 2017年9月27日 下午3:11:33
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toXjItemList")
+	public String toXjList(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			map.put("pageIndex", Constant.PageStatus.PAGE_INDEX);
+			map.put("pageSize", Constant.PageStatus.PAGE_SIZE);
+			map.put("tokenId", tokenId);
+			jsp = JSP_PR+"/xjItemList";
+		}
+		return jsp; 
+	}
+	
+	
+	/**
+	 * 获取本场所下巡检点列表
+	 * 
+	 * @date 2017年9月27日 下午5:12:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @return 
+	 */
+	@RequestMapping("/getXjItemList")
+	@ResponseBody
+	@SuppressWarnings("unchecked")
+	public ResultBean getXjItemList(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId){
+		ResultBean result = new ResultBean();
+		result.setFlag(true);
+		result.setMessage("请求成功");
+		if(ServiceReceiver.checkLogin(tokenId)){
+			Map<String,Object> params = new HashMap<String,Object>();
+			Map<String,Object> data = new HashMap<String,Object>();
+			PageBean bean = new PageBean(request);
+			//转换页面查询数据格式
+			String jsonParam = request.getParameter("param");
+			GsonBuilder gb = new GsonBuilder();
+			Gson g = gb.create();
+			Map<String, String> paramMap = g.fromJson(jsonParam, new TypeToken<Map<String, String>>() {}.getType());
+				if(null != paramMap){
+					//获取查询开始时间
+					String rfidid = paramMap.get("rfidid");
+					if (StringUtils.isNotBlank(rfidid)) {
+						params.put("rfidid", rfidid);
+					}
+				}
+				//获取数据
+				// 是否有RFID标签
+				List<Map<String,Object>> rfid =  ServiceReceiver.getDictSelect(DictConstant.CHECKITEM_SFMR.getValue());
+				data.put("rfid",rfid);
+				
+				WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+				
+				Map<String, Object> xjItemLists = bizTXjdItemService.getXjItemData(bean, params,loginInfo);
+				List<Map<String, Object>> xjItemList = (List<Map<String, Object>>) xjItemLists.get("rows");
+				data.put("xjItemList",xjItemList);
+				//获取页码
+				Map<String,Object> page = new HashMap<String,Object>();
+				page.put("pageIndex", bean.getPageIndex());
+				page.put("pageSize", bean.getPageSize());
+				data.put("page",page);
+				result.setData(data);
+		}else{
+			result.setFlag(false);
+			result.setMessage(LoginTipMsgConstants.LOGIN_EXPIRED);
+			result.setData(new HashMap<String, Object>(){{put("login",false);}});
+		}
+		return result;
+	}
+	
+	/**
+	 * 巡检点详情
+	 * 
+	 * @date 2017年9月27日 下午7:23:29
+	 * @author 陈涛
+	 * @param request
+	 * @param tokenId
+	 * @param ttaskItemSbssId
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toxjItemIdDetail")
+	public String toxjItemIdDetail(HttpServletRequest request,@RequestParam(value="tokenId",required=true) String tokenId,
+			@RequestParam(value="xjItemId",required=true) String xjItemId,ModelMap map){
+		String jsp = "";
+		if(!ServiceReceiver.checkLogin(tokenId)){
+			
+			jsp = JSP_PR+"/relogin";
+		}else{
+			
+			BizTXjdItem result =  bizTXjdItemService.findOneById(xjItemId);
+			map.put("xjItem", result);
+			
+			jsp = JSP_PR+"/xjItemDetail";
+		}
+		return jsp; 
+	}
+}

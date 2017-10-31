@@ -1,0 +1,145 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>班次设置</title>
+<%@include file="/system/common/header_splitmode.jsp" %>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+<!-- 表单验证start -->
+<script type="text/javascript" src="${path}/libs/js/form/form.js"></script>
+<script type="text/javascript" src="${path }/libs/js/form/validationRule.js"></script>
+<script type="text/javascript" src="${path }/libs/js/form/validation.js"></script>
+<!--数据表格start-->
+<script src="${path}/libs/js/table/quiGrid_o.js" type="text/javascript"></script>
+<!-- 表单start -->
+<script type="text/javascript" src="${path}/libs/js/form/datePicker/WdatePicker.js"></script>
+
+<script type="text/javascript" src="${path }/js/plug-in/stringutil.js"></script>
+<script type="text/javascript" src="${path }/js/yxsw-common.js"></script>
+<script type="text/javascript" src="${path }/js/dateutil.js"></script>
+<script type="text/javascript" src="${path }/js/work_period/period_view.js"></script>
+<script type="text/javascript">
+
+	var path = "${path}";
+	var backURL = "${backURL}";
+	var wpId = "${wp.workGroupId}";
+
+	jQuery(function(){
+		repairCss();
+		/*隐藏展开功能*/
+		/* jQuery(".to_hide_over_content").live("click",function(){
+			var tipicon = jQuery.trim(jQuery(this).find("span:eq(2)").text());
+			if(tipicon=="∨"){
+				jQuery(this).find("span:eq(0)").text("展开");
+				jQuery(this).find("span:eq(2)").text("∧");
+				jQuery(this).parent().find(".detail-list").hide();
+			}else{
+				jQuery(this).find("span:eq(0)").text("隐藏");
+				jQuery(this).find("span:eq(2)").text("∨");
+				jQuery(this).parent().find(".detail-list").show();
+			}
+		}); */
+		
+	});
+	
+	function repairCss(){
+		/***解决core中定义的td样式影响qui的td样式***/
+		jQuery(".mainCon td .selectbox").parent().css("width","auto");
+		jQuery(".mainCon td .selBtn").css("height","auto");
+		jQuery(".mainCon td .selBtn").css("width","11px");
+	}
+</script>
+<style type="text/css">
+	#check_item_detail_tool{
+		float: left; height: 29px;margin-bottom: -6px;width: 100%; 
+		background: linear-gradient(180deg, rgba(198, 229, 251, 1) 0%, rgba(198, 229, 251, 1) 0%, rgba(137, 192, 254, 1) 100%, rgba(137, 192, 254, 1) 100%);
+	}
+	#check_item_detail_tool a{color:#999;}
+	#check_item_detail_table tr td{border: 1px solid #abc1cc;text-align: center;}
+	/****解决动态加载select标签的样式问题****/
+	#checkItemDetal_div tr td{width: auto;}
+</style>
+</head>
+<body>
+	<div class="details-max">
+		<div class="list-content">
+	    	 <div class="details-container">
+                <form action="#" id="form">
+	    	 		<!-- 指标项管理 start -->
+	         		<div class="task-detail">
+		            	<span class="detail-title">班次设置</span>
+		                <div class="to_hide_over_content" class="text">
+		          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+		        		</div> 
+	                 	<table class="detail-list">
+		                 	<tr>
+		                 		<th>班次名称：</th>
+				    			<td>
+				    				${wp.workGroupName }
+				    			</td>
+		                 		<%-- <th><span class="red">*</span>是否启用：</th>
+				    			<td>
+									<select labelField="value" valueField="key" selWidth="253" name="checkItemType" id="checkItemType" class="validate[required]"  prompt="请选择" url="${path}/platform/getSupportData" params='{"parentNodeId":"${CHECKITEM_SFMR }"}' ></select>
+								</td> --%>
+		                 	</tr>
+		                    <tr>
+		                        <th>开始时间：</th>
+		                        <td>
+		                        	${wp.startTime }
+		                        </td>
+		                        <th>结束时间：</th>
+								<td>
+									${wp.endTime }
+								</td>
+		                    </tr>
+		                    <tr>
+		                        <th>班次说明：</th>
+				    			<td colspan="3">
+				    				${wp.workGroupDesc }
+				    			</td>
+		                    </tr>
+		                 </table>
+	            	</div>
+	            	<!-- 指标项管理 end -->
+	            	<!-- 单选项 start -->
+		            <div class="task-audit">
+				    	<span class="detail-title">班次明细</span>
+				        <div class="to_hide_over_content" class="text">
+				        	<p><span>隐藏</span><span>&nbsp;</span><span style="">∨</span></p>
+				        </div>
+				        <div class="padding_right5" style="height: 320px; margin-top: 30px;">
+							<div id="wp_detail"></div>
+						</div>
+						<!-- <div id="check_item_detail_tool">
+								<a href="javascript:;" onclick="toAddCheckItemDetailDom();" style=" margin-left:10px;"><span class="icon_add">新增选项</span></a>
+								<a href="javascript:;" onclick="toDelCheckItemDetailDom();"><span class="icon_delete">批量删除</span></a>
+						</div>
+						<table class="detail-list" id="check_item_detail_table">
+				            <tr style="background-color: #c6e5fb;">
+				            	<td style="width:2%;padding: 0px;"><input type='checkbox' onclick="func_check_item_detail(this);"/></td>
+					           	<td style="width:10%;color: #006699;">序列号</td>
+					           	<td style="width:22%;color: #006699;">编码</td>
+					           	<td style="width:22%;color: #006699;">名称</td>
+					           	<td style="width:22%;color: #006699;">是否异常</td>
+					           	<td style="width:22%;color: #006699;">是否默认</td>
+				         	</tr>
+				         </table>	 -->
+				    </div>
+			     </form>
+			    <!-- 单选项 end -->
+	         </div>
+         </div>
+    </div>
+    <!-- 底部按钮 -->
+	<div class="list-btm">
+	  	<div class="list-btm-div">
+	        <div class="div-btn-sbt">
+	             <button class="btm-button" type="button"  onclick="back();"><span class="back-icon">返回</span></button>
+	        </div>
+	    </div>
+	</div>
+</body>
+</html>

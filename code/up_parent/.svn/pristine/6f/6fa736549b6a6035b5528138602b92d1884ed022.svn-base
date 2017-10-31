@@ -1,0 +1,135 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib uri="http://java.sun.com/jstl/fmt_rt" prefix="fmt"%>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>新增消息</title>
+<!--分离模式框架必需start-->
+<script type="text/javascript" src="${path }/libs/js/jquery.js"></script>
+<script type="text/javascript" src="${path }/libs/js/language/cn.js"></script>
+<script type="text/javascript" src="${path }/libs/js/framework.js"></script>
+<link href="${path }/libs/css/import_basic.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" type="text/css" id="skin" prePath="${path }/" splitMode="true" href="${path }/libs/skins/blue/style.css"/>
+<link rel="stylesheet" type="text/css" id="customSkin" href="${path }/system/layout/skin/style.css"/>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+<!--分离模式框架必需end-->
+<!--树组件start -->
+<script type="text/javascript" src="${path}/libs/js/form/selectTree.js"></script>
+<script type="text/javascript" src="${path}/libs/js/tree/ztree/ztree.js"></script>
+<link href="${path}/libs/js/tree/ztree/ztree.css" rel="stylesheet" type="text/css"/>
+<!-- 表单验证start -->
+<script src="${path }/libs/js/form/validationRule.js" type="text/javascript"></script>
+<script src="${path }/libs/js/form/validation.js" type="text/javascript"></script>
+<!-- 表单验证end -->
+<!--弹窗组件start-->
+<script type="text/javascript" src="${path }/libs/js/popup/drag.js"></script>
+<script type="text/javascript" src="${path }/libs/js/popup/dialog.js"></script>
+<!--弹窗组件end-->
+<script type="text/javascript">
+	jQuery(function(){
+		/***解决core中定义的td样式影响qui的td样式***/
+		  jQuery(".mainCon td .selectbox").parent().css("width","auto");
+		  jQuery(".mainCon td .selBtn").css("height","auto");
+		  jQuery(".mainCon td .selBtn").css("width","11px");
+		  
+		jQuery(".to_hide_over_content").on("click",function(){
+			var tipicon = jQuery.trim(jQuery(this).find("span:eq(2)").text());
+			if(tipicon=="∨"){
+				
+				jQuery(this).find("span:eq(0)").text("展开");
+				jQuery(this).find("span:eq(2)").text("∧");
+				jQuery(this).next(".detail-list").hide();
+			}else{
+				jQuery(this).find("span:eq(0)").text("隐藏");
+				jQuery(this).find("span:eq(2)").text("∨");
+				jQuery(this).next(".detail-list").show();
+			}
+		});
+	});
+	
+	function back(){
+		location.href = "${path}/msgManage/inits";
+	}
+	
+	function doAddMsg(){
+		$('#myFormId').validationEngine();
+		var valid = $("#myFormId").validationEngine({returnIsValid: true});
+		if(valid){
+			$.ajax({
+	            cache: true,
+	            type: "POST",
+	            url:'${path}/msgManage/doAddMsg',
+	            data:$('#myFormId').serialize(),// 你的formid
+	            async: false,
+	            error: function(request) {
+	            	Dialog.alert("提交失败");
+	            },
+	            success: function(responseText, statusText, xhr, $form){
+	            	Dialog.alert(responseText.message, function(){
+	            		
+	            		location.href = "${path}/msgManage/inits";
+	                });
+	            }
+	        });
+		}else{
+			return;
+		}
+	}
+</script>
+<style type="text/css">
+	.selectbox{width:180px !important;}
+</style>
+</head>
+<body>
+	<div class="details-max">
+		<div class="list-content">
+			<form id="myFormId" action="" method="post" target="frmright">
+	    	 <div class="details-container">
+	         	<div class="task-detail">
+	            	 <span class="detail-title">
+	                	 新增消息
+	                 </span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div> 
+		                 <table class="detail-list" >
+		                 	<tr>
+		                 		<th style="width:10%;"><span><em style="color:red;">*</em></span>标题：</th>
+		                 		<td><input class="validate[required,length[0,128]]" name="title" id="title" value="" type="text"  style="width:200px;"/></td>
+		                 	</tr>
+		                 	<tr>
+		                 		<th><span><em style="color:red;">*</em></span>接收人：</th>
+		                 		<td>
+									<div class="selectTree validate[required]" name="reciverId" id="reciverId" url="${path}/msgManage/getPeopleTree"  multiMode="true" exceptParent="true" allSelectable="true"> </div>
+		                 		</td>
+		                 	</tr>
+		                 	<tr>
+				                 <th >重要程度：</th>
+								<td ><select labelField="value" valueField="key" selWidth="200" name="importantLevel" prompt="请选择" selectedValue="" url="${path}/platform/getSupportData" params='{"parentNodeId":"${importantLevel }"}'></select></td>
+		                 	</tr>
+		                 	<tr>
+								<th>内容：</th>
+								<td >
+									<textarea maxNum="1000" name="content" class="validate[length[0,1000]]"   style="width:30%;height:110px;"/></textarea>
+								</td>
+							</tr>
+		                 </table>
+	            	</div>
+	         	</div>
+			</form>
+		</div>
+		<!-- 底部按钮 -->
+		<div class="list-btm">
+	    	<div class="list-btm-div">
+	            <div class="div-btn-sbt">
+	            	<button class="btm-button" type="button"  onclick="doAddMsg();"><span class="ok-icon">发送</span></button>
+	            	<button class="btm-button" type="button"  onclick="back();"><span class="back-icon">返回</span></button>
+	            </div>
+	        </div>
+	    </div>
+     </div>
+</body>
+</html>

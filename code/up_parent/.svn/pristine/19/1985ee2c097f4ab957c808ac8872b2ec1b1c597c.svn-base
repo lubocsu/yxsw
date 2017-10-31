@@ -1,0 +1,53 @@
+package com.upsoft.yxsw.service.impl;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.yxsw.constant.Constant;
+import com.upsoft.yxsw.dao.BizTXjCxTaskPersonsDAO;
+import com.upsoft.yxsw.entity.BizTXjCxTaskPersons;
+import com.upsoft.yxsw.service.BizTXjCxTaskPersonsService;
+
+
+@Service
+public class BizTXjCxTaskPersonsServiceImpl extends BaseServiceImpl implements BizTXjCxTaskPersonsService {
+
+	@Autowired
+	private BizTXjCxTaskPersonsDAO bizTXjCxTaskPersonsDAO; 
+	
+	@Override
+	public Map<String, Object> getList(PageBean bean, Map<String, Object> params) {
+		return null;
+	}
+
+	@Override
+	public Boolean queryCharge(String taskId,String userId) {
+//		String sql = "SELECT COUNT(0) FROM BIZ_T_XJ_CX_TASK_PERSONS T WHERE T.CX_TASK_ID='"+taskId+"' AND T.IN_CHARGE='"+Constant.YES_NO.YES.getValue()+"'";
+		String sql = "SELECT T.* FROM BIZ_T_XJ_CX_TASK_PERSONS T WHERE T.CX_TASK_ID='"+taskId+"'";
+		
+		List<BizTXjCxTaskPersons> list = bizTXjCxTaskPersonsDAO.queryListBySql(sql,new HashMap<String,Object>(),BizTXjCxTaskPersons.class);
+		boolean flag = false;
+		for (BizTXjCxTaskPersons person : list) {
+			if(StringUtils.equals(Constant.YES_NO.YES.getValue(), String.valueOf(person.getInCharge()))){
+				if(!StringUtils.equals(userId, String.valueOf(person.getPersonId()))){
+					flag = true;
+				}
+			}
+		}
+		return flag;
+	}
+
+	@Override
+	public void updateToSetCharge(String taskId, String userId) {
+		String sql = "UPDATE BIZ_T_XJ_CX_TASK_PERSONS T SET T.IN_CHARGE='"+Constant.YES_NO.YES.getValue()+"' WHERE T.CX_TASK_ID='"+taskId+"' AND T.PERSON_ID='"+userId+"'";
+		bizTXjCxTaskPersonsDAO.executeSql(sql, new HashMap<String,Object>());
+	}
+	
+}

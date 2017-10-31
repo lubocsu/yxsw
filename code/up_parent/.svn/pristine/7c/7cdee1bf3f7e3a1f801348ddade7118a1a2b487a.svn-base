@@ -1,0 +1,281 @@
+package com.upsoft.systemweb.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.upsoft.system.bean.ExcelHeaderBean;
+import com.upsoft.system.bean.ExportExcelBean;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.entity.SysOrgEntity;
+import com.upsoft.system.service.BaseServiceImpl;
+import com.upsoft.systemweb.dao.IOrgDao;
+import com.upsoft.systemweb.service.ExportExcelDataSource;
+import com.upsoft.systemweb.service.OrgService;
+import com.upsoft.systemweb.service.PermissionDataService;
+
+/**
+ * 
+ * Copyright (c) 2015,重庆扬讯软件技术有限公司<br>
+ * All rights reserved.<br>
+ * 
+ * 文件名称：OrgServiceImpl.java<br>
+ * 摘要：组织机构服务接口实现类<br>
+ * -------------------------------------------------------<br>
+ * 当前版本：1.1.1<br>
+ * 作者：胡毅<br>
+ * 完成日期：2015年1月22日<br>
+ * -------------------------------------------------------<br>
+ * 取代版本：1.1.0<br>
+ * 原作者：胡毅<br>
+ * 完成日期：2015年1月22日<br>
+ */
+@Service
+public class OrgServiceImpl extends BaseServiceImpl implements OrgService, ExportExcelDataSource {
+
+	@Autowired
+	private IOrgDao orgDao;
+	
+	@Autowired
+	private PermissionDataService permissionDataService;
+
+	@Override
+	public List<SysOrgEntity> querySysOrgList(int start, int length, Map<String, Object> pars) {
+		String sql= getQuerySql(pars);
+		sql += " order by to_number(t.orderno) asc";
+		List<SysOrgEntity> datas = orgDao.queryListBySql(sql, start*length, length, pars,SysOrgEntity.class);
+		return datas;
+	}
+
+	/**
+	 * 组装sql用于表格查询（有条件），树查询（无条件）
+	 * @date 2015年1月29日 上午11:57:48
+	 * @author 胡毅
+	 * @param con
+	 * @return
+	 */
+	private  String getQuerySql(Map<String, Object> con) {
+		StringBuilder sql = new StringBuilder();
+		sql.append(" SELECT  T.ORGID, T.PARENTORGID, T.ORGCODE, T.ORGNAME, T.ORGSHROTNAME, T.SHORTSPELLING, T.ORGTYPEID, T.ENABLED, T.X, T.Y, T.ADDRESS, "
+				+ "T.ZIP, T.TEL, T.PRINCIPAL, T.ORDERNO, T.DESCRIPTION,U.USERNAME PRINCIPALNAME  FROM SYS_ORG T "
+				+ "LEFT JOIN SYS_USER U ON U.USERID=T.PRINCIPAL "
+				+ "WHERE 1=1 ");
+		if (con.containsKey("orgName")&&StringUtils.isNotBlank(con.get("orgName").toString())) {
+			sql.append(" and ("
+					+ "t.orgName like '%" + con.get("orgName") + "%' "
+					+ "or fn_getpy(t.orgName) like '%" +con.get("orgName") + "%' "
+					+ "or fn_getpy(t.orgName,1) like '%" + con.get("orgName") + "%' "
+					+ "or fn_getpy(t.orgName,2) like '%" + con.get("orgName") + "%' "
+					+ "or fn_getpy(t.orgName,3) like '%" + con.get("orgName") + "%' "
+					+ "or fn_getpy(t.orgName,4) like '%" + con.get("orgName") + "%' "
+					+ ")");
+		}
+		if(con.containsKey("excludeIds") && StringUtils.isNotBlank(con.get("excludeIds").toString())){
+			String[] ids = con.get("excludeIds").toString().split(",");
+			for (int i = 0; i < ids.length; i++) {
+				sql.append(" and t.orgid not in (select o.orgid from sys_org o start with o.orgid=:excludeId" + i + " Connect By Prior o.orgid=o.parentorgid)");
+				con.put("excludeId"+i, ids[i]);
+			}
+			con.remove("excludeIds");
+		}
+		sql.append(" Start With t.parentorgid=:parentOrgId Connect By Prior t.orgid=t.parentorgid");
+		return sql.toString();
+
+	}
+
+	@Override
+	public long checkOrgCode(String orgCode,String orgId) {
+		StringBuilder sql = new StringBuilder();
+		sql.append("select count(1) from sys_org t where 1=1 ");
+		Map<String, Object> pars = new HashMap<String, Object>();
+		if(StringUtils.isNotBlank(orgId)){
+			sql.append(" and t.orgId <>:orgId ");
+			pars.put("orgId", orgId);
+		}
+		sql.append("and t.orgCode=:orgCode ");
+		pars.put("orgCode", orgCode);
+		long count = orgDao.queryCountBySql(sql.toString(), pars);
+		return count;
+	}
+
+	@Override
+	public Map<String, Object> queryPagination(PageBean bean,Map<String,Object> pars) {
+		String sql = getQuerySql(pars);
+		//组装好sql后不需要orgName条件了，删除该条件
+		pars.remove("orgName");
+		Map<String, Object> datas = orgDao.queryPaginationListBySql(sql, pars, bean); 
+		return datas;
+	}
+
+	@Override
+	public ExportExcelBean getDataSource(Map<String, Object> params, PageBean pageBean) {
+		ExportExcelBean excelBean = new ExportExcelBean();
+		//获取excel表数据
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> data = (List<Map<String, Object>>) queryPagination(pageBean, params).get("rows");
+		// 组装表头（key值与数据源名称保持一致）
+		List<ExcelHeaderBean> header = new ArrayList<ExcelHeaderBean>();
+		header.add(new ExcelHeaderBean("orgname", "机构名称"));
+		header.add(new ExcelHeaderBean("orgcode", "机构代码"));
+		header.add(new ExcelHeaderBean("address", "机构地址"));
+		header.add(new ExcelHeaderBean("zip", "邮　　编"));
+		header.add(new ExcelHeaderBean("principal", "负责人"));
+		header.add(new ExcelHeaderBean("tel", "联系电话"));
+		//设置列宽度，默认宽度为20
+		header.add(new ExcelHeaderBean("description", "备注",50));
+		
+		excelBean.setData(data);
+		excelBean.setHeader(header);
+		return excelBean;
+	}
+
+	@Override
+	public void deleteOrgByParentId(String id) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		String sql ="delete from sys_org o where o.parentorgid =:id";
+		params.put("id",id);
+		orgDao.executeSql(sql, params);
+	}
+
+	@Override
+	public List<SysOrgEntity> querySysOrgList(int start, int length,
+			String orgid) {
+		StringBuilder sql = new StringBuilder();
+		sql.append(" select t.* from sys_org t where 1=1 ");
+		sql.append(" Start With t.orgid='"+orgid+"' Connect By Prior t.orgid=t.parentorgid");
+		sql.append("  order by to_number(t.orderno) asc");
+		return orgDao.queryListBySql(sql.toString(), start*length, length, new HashMap<String, Object>(),SysOrgEntity.class);
+	}
+
+	
+	
+	@Override
+	public SysOrgEntity findOneById(String orgId) {
+		
+		return orgDao.findOne(orgId);
+	}
+
+	@Override
+	public List<Map<String, Object>> queryOrgsWithPermission(String orgId) {
+		Map<String, Object> pars = new HashMap<String, Object>();
+		String tmpsql = "";
+		if (StringUtils.isNotBlank(orgId)) {
+			pars.put("orgId", orgId);
+			tmpsql = "O.ORGID = :orgId";
+		} else {
+			tmpsql = "(o.orgid = 0 or o.orgid is null)";
+		}
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT O.ORGID id,o.parentorgid parentid,o.orgname name, 'false' clickExpand");
+		sql.append(" FROM SYS_ORG O  where o.enabled = 1");
+		sql.append(" CONNECT BY PRIOR O.ORGID = O.PARENTORGID START WITH " + tmpsql);
+		sql.append(" order by clickExpand desc ");
+		return orgDao.queryListBySql(sql.toString(), pars);
+	}
+
+	@Override
+	public SysOrgEntity findOneByCode(String orgCode) {
+		String sql = "select * from sys_org o where o.orgCode = '" + orgCode + "'";
+		List<SysOrgEntity> list = orgDao.queryListBySql(sql, new String[]{}, SysOrgEntity.class);
+		return list.get(0);
+	}
+
+	@Override
+	public List<String> iterateOrgIdsById(String orgId) {
+		String sql = "select orgid from sys_org start with orgid = :orgId connect by parentorgid = prior orgid";
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("orgId", orgId);
+		List<Map<String, Object>> queryList = orgDao.queryListBySql(sql, param);
+		List<String> orgIdList = new ArrayList<String>();
+		for (Map<String, Object> map : queryList) {
+			orgIdList.add(map.get("orgid").toString());
+		}
+		return orgIdList;
+	}
+
+	@Override
+	public List<Map<String, Object>> iterateOrgAllColumnById(String orgId) {
+		String sql = "select * from sys_org ";
+		Map<String, Object> param = new HashMap<String, Object>();
+		if(StringUtils.isNotBlank(orgId)){
+			param.put("orgId", orgId);
+			sql += " start with orgid = :orgId connect by parentorgid = prior orgid ";
+		}
+		List<Map<String, Object>> queryList = orgDao.queryListBySql(sql, param);
+		return queryList;
+	}
+	
+	@Override
+	public List<Map<String, Object>> getOrgTreeInPermission(String userId,String parentId, String parentCode) {
+		List<String> orgIds = permissionDataService.getPermissionOrgIds(userId);
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("orgIds", orgIds);
+		StringBuilder sql = new StringBuilder();
+		sql.append("select t.orgid as id,t.orgcode as code,t.parentorgid as parentid,t.orgname as name,t.orgtypeid as type from sys_org t ");
+		sql.append("where t.enabled =1 ");
+		sql.append("and t.orgid in (:orgIds) ");
+		if(StringUtils.isNotBlank(parentId)){
+			sql.append("start with t.orgid=:parentId connect by t.parentorgid = prior t.orgid ");
+			params.put("parentId", parentId);
+		}else if(StringUtils.isNotBlank(parentCode)){
+			sql.append("start with t.orgcode=:parentCode connect by t.parentorgid = prior t.orgid ");
+			params.put("parentCode", parentCode);
+		}
+		sql.append("order by t.orderno ");
+		List<Map<String, Object>> results = orgDao.queryListBySql(sql.toString(), params);
+		// 字段转换
+		for(Map<String, Object> result:results){
+			result.put("parentId", result.get("parentid"));
+		}
+		return results;
+	}
+
+	@Override
+	public List<Map<String, Object>> iterateOrgAllColumnByCode(String orgCode) {
+		String sql = "select * from sys_org start with orgcode = :orgCode connect by parentorgid = prior orgid ";
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("orgCode", orgCode);
+		List<Map<String, Object>> result = orgDao.queryListBySql(sql, param);
+		return result;
+	}
+	
+	@Override
+	public SysOrgEntity queryUperCsSysOrgByOrgId(String orgId, String orgType) {
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT \n");
+		sql.append("               ORGID,\n");
+		sql.append("               PARENTORGID,\n");
+		sql.append("               ORGCODE,\n");
+		sql.append("               ORGNAME,\n");
+		sql.append("               ORGSHROTNAME,\n");
+		sql.append("               SHORTSPELLING,\n");
+		sql.append("               ORGTYPEID,\n");
+		sql.append("               ENABLED,\n");
+		sql.append("               X,\n");
+		sql.append("               Y,\n");
+		sql.append("               ADDRESS,\n");
+		sql.append("               ZIP,\n");
+		sql.append("               TEL,\n");
+		sql.append("               PRINCIPAL,\n");
+		sql.append("               ORDERNO,\n");
+		sql.append("               DESCRIPTION\n");
+		sql.append("          FROM SYS_ORG T\n");
+		sql.append("         WHERE T.ORGTYPEID = :orgType\n");
+		sql.append("        CONNECT BY PRIOR T.PARENTORGID = T.ORGID\n");
+		sql.append("         START WITH T.ORGID = :orgId \n");
+		sql.append("         ORDER BY LEVEL DESC");
+		Map<String, Object> pars = new HashMap<String, Object>();
+		pars.put("orgId", orgId);
+		pars.put("orgType", orgType);
+		List<SysOrgEntity> list = orgDao.queryListBySql(sql.toString(), pars,SysOrgEntity.class);
+		if(null!=list && list.size()>0)
+			return list.get(0);
+		else
+			return null;
+	}
+}

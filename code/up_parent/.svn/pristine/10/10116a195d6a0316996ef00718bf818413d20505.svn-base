@@ -1,0 +1,104 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="path" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>查看安全定义</title>
+<script type="text/javascript" src="${path }/js/jquery-1.7.2.min.js"></script>
+<link href="${path }/css/core.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript">
+	jQuery(function(){
+		/*隐藏展开功能*/
+		jQuery(".to_hide_over_content").live("click",function(){
+			var tipicon = jQuery.trim(jQuery(this).find("span:eq(2)").text());
+			if(tipicon=="∨"){
+				jQuery(this).find("span:eq(0)").text("展开");
+				jQuery(this).find("span:eq(2)").text("∧");
+				jQuery(this).next(".detail-list").hide();
+			}else{
+				jQuery(this).find("span:eq(0)").text("隐藏");
+				jQuery(this).find("span:eq(2)").text("∨");
+				jQuery(this).next(".detail-list").show();
+			}
+		});
+		
+	});
+</script>
+<style type="text/css">
+	#check_item_detail_table tr td{border: 1px solid #abc1cc;text-align: center;}
+</style>
+</head>
+<body style="overflow: hidden;">
+	<div class="details-max">
+		<div class="list-content">
+	    	 <div class="details-container" style="margin: 10px 15px;">
+	    	 	<!-- 指标项管理 start -->
+	         	<div class="task-detail">
+	            	 <span class="detail-title">安全提醒定义</span>
+	                 <div class="to_hide_over_content" class="text">
+	          			<p><span>隐藏</span><span>&nbsp;</span><span>∨</span></p>
+	        		 </div>
+					<table class="detail-list">
+						<tr>
+							<th>安全提醒标题: </th>
+							<td>${warning.title}</td>
+							</tr>
+							<tr>
+							<th>是否重要提醒: </th>
+							<td> <c:if test="${warning.is_important eq  '1' }" >是</c:if>
+			  	  				 <c:if test="${warning.is_important eq  '0' }" >否</c:if>
+			  	            </td>
+						</tr>
+						<tr>
+							<th>提醒类型:</th>
+							<td> <c:if test="${warning.tx_type eq '1' }">设备安全</c:if>
+				   				 <c:if test="${warning.tx_type eq '2' }">设施安全</c:if>
+				   				 <c:if test="${warning.tx_type eq '3' }">巡检点安全</c:if>
+							</td>
+							
+						</tr>
+					
+					</table >
+					<table class="detail-list">
+					
+								<tr>
+			     <th  width="200px" align="center" >安全提醒内容：</th>
+				 <td >
+					
+					
+				<textarea style="width:500px; height:300px"  disabled="disabled">${warning.content}</textarea>
+				</td>
+				
+			</tr>
+			</table>
+			</br>
+			</br>
+			<table  class="detail-list">
+			    <c:if test="${!empty attachmentList }">
+		                    <tr align="left">
+		                    	<th align="left">附件：</th>
+		                    	<td align="left">
+		                    	<!-- 	<div class="imglist"> -->
+		                    		<c:forEach items="${attachmentList }" var="item">
+		                    		
+		                    			<a href="${ServerURL}${item.attachmentPath}"  download="${item.oldAttachmentName}.${item.attachmentSuffix}" >${item.oldAttachmentName }.${item.attachmentSuffix}</a>
+		                    			<%-- <a href="${ServerURL}${item.attachmentPath}"  download="${item.oldAttachmentName}.${item.attachmentSuffix}">${item.oldAttachmentName}.${item.attachmentSuffix}</a>  --%>
+		                    			<br />
+		                    		</c:forEach>
+		                    		<!-- </div> -->
+		                    	</td>
+		                    </tr>
+	                    </c:if>
+	              <th></th>
+				  <td></td>      
+			</table> 
+					</div>
+				</div>
+	         
+	         </div>
+         </div>
+    </div>
+</body>
+</html>

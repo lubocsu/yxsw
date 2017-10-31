@@ -1,0 +1,378 @@
+package com.upsoft.yxsw.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.WebUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.upsoft.login.support.webservice.ServiceReceiver;
+import com.upsoft.login.support.webservice.SysUtils;
+import com.upsoft.system.bean.PageBean;
+import com.upsoft.system.bean.WSLoginInfoBean;
+import com.upsoft.yxsw.entity.BizTXjZbPlan;
+import com.upsoft.yxsw.service.BizTXjZbPlanService;
+
+/**
+* Copyright (c) 2017,重庆扬讯软件技术股份有限公司<br>
+* All rights reserved.<br>
+*
+* 文件名称：BizTXjZbPlanController.java<br>
+* 摘要：简要描述本文件的内容<br>
+* -------------------------------------------------------<br>
+* 当前版本：1.0<br>
+* 作者：陈涛<br>
+* 完成日期：2017年9月21日<br>
+* -------------------------------------------------------<br>
+*/
+@Controller
+@RequestMapping(BizTXjZbPlanController.FORWARD_PREFIX)
+public class BizTXjZbPlanController  {
+	protected static final Logger logger = Logger.getLogger(BizTXjZbPlanController.class);
+	protected static final String FORWARD_PREFIX = "/zbPlan";
+	private static final String JSP_PR = "/WEB-INF/jsp/zbPlan";
+	
+	@Autowired
+	public BizTXjZbPlanService bizTXjZbPlanService;
+	
+	
+	/**
+	 *  初始化页面
+	 * @param map
+	 * @return
+	 */
+	@RequestMapping("/init")
+	public String init(HttpServletRequest request,ModelMap map){
+		
+		//获取排班日期
+		String zbDate = WebUtils.findParameterValue(request, "zbDate");
+		//获取厂商性质
+		String org = WebUtils.findParameterValue(request, "org");
+		//获取用户信息
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		
+		map.put("csOrgType", loginInfo.getCsOrgTypeId());
+		map.put("zbDate", zbDate);
+		map.put("org", org);
+		
+		return JSP_PR + "/main";
+	}
+	
+	/**
+	 * 获取排班数据
+	 * 
+	 * @date 2017年9月20日 上午10:25:54
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/getZbPlanData")
+	@ResponseBody
+	public Map<String, Object> getZbPlanData(HttpServletRequest request,ModelMap map){
+		
+		PageBean pageBean = new PageBean(request);
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		//获取用户信息
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		//获取排班日期
+		String zbDate = WebUtils.findParameterValue(request, "zbDate");
+		//获取厂商性质
+		String org = WebUtils.findParameterValue(request, "org");
+		if (StringUtils.isNotBlank(zbDate)) {
+			params.put("zbDate", zbDate);
+		}
+		if (StringUtils.isNotBlank(org)) {
+			params.put("org", org);
+		}
+		
+		return bizTXjZbPlanService.getZbPlanData(pageBean, params,loginInfo);
+	}
+	
+	/**
+	 * 查询机构树
+	 * 
+	 * @date 2017年9月21日 下午2:06:09
+	 * @author 陈涛
+	 * @param request
+	 * @return 
+	 */
+	@RequestMapping("/getOrgTree")
+	@ResponseBody
+	public List<Map<String,Object>> getOrgTree(HttpServletRequest request){
+		
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		String orgId = loginInfo.getCsOrgId();
+		List<Map<String,Object>> result = new ArrayList<Map<String,Object>>();
+		List<Map<String,Object>> results = ServiceReceiver.iterateOrgById(orgId);
+		for (Map<String, Object> map : results) {
+			String orgType = map.get("orgtypeid").toString();
+			if(orgType.equals("3")){
+				result.add(map);
+			}
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * 跳转到新增页面
+	 * 
+	 * @date 2017年9月20日 下午2:29:06
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/toZbPlan")
+	public String toZbPlan(HttpServletRequest request,ModelMap map){
+		
+		//获取用户ID
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		map.put("userId", loginInfo.getUser().getUserId());
+		//获取班次开始和结束时间
+		Map<String,Object> times = bizTXjZbPlanService.getTimes(loginInfo.getCsOrgId());
+		map.put("times", times);
+		//获取班次
+		List<Map<String,Object>> bc = bizTXjZbPlanService.getBc(loginInfo.getCsOrgId());
+		map.put("bc", bc);
+		map.put("bcJson", new Gson().toJson(bc));
+		//获取工艺段
+		List<Map<String,Object>> gyd =   bizTXjZbPlanService.getGyd(loginInfo.getCsOrgId());
+		map.put("gydJson", new Gson().toJson(gyd));
+		map.put("gyd", gyd);
+		
+		return JSP_PR + "/addZbPlan";
+	}
+	
+	/**
+	 * 获取责任人树
+	 * 
+	 * @date 2017年9月20日 下午2:29:19
+	 * @author 陈涛
+	 * @param request
+	 * @return 
+	 */
+	@RequestMapping("/getPeopleTree")
+	@ResponseBody
+	public Map<String,Object> getPeopleTree(HttpServletRequest request){
+		Map<String, Object> zNodes = new HashMap<String, Object>();
+		
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		String orgId = loginInfo.getCsOrgId();
+		List<Map<String,Object>> result = ServiceReceiver.getUserOrgTreeByOrgId(orgId,null);
+		
+		zNodes.put("treeNodes", result);
+		
+		return zNodes;
+	}
+	
+	/**
+	 * 验证当前日期是否已经排班
+	 * 
+	 * @date 2017年9月20日 下午6:33:52
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @param validateValue
+	 * @return 
+	 */
+	@ResponseBody
+	@RequestMapping("/validateRfidCode")
+	public Map<String, Object> validateRfidCode(HttpServletRequest request, ModelMap map, String validateValue){
+		Map<String, Boolean> result = new HashMap<String, Boolean>();
+		Boolean isExists = bizTXjZbPlanService.dateExists(validateValue);
+		
+		if(isExists){
+			result.put("valid", false);
+		}else{
+			result.put("valid", true);
+		}
+		
+		Map<String, Object> resultJson = new HashMap<String, Object>();
+		resultJson.put("validateResult", result);
+		return resultJson;
+	}
+	
+	/**
+	 * 新增排班
+	 * 
+	 * @date 2017年9月21日 下午1:43:52
+	 * @author 陈涛
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/doAddZbPlan")
+	@ResponseBody
+	public Map<String, Object> doAddZbPlan(HttpServletRequest request,ModelMap map){
+		Map<String, Object> msg = new HashMap<String,Object>();
+		//获取负责人数据
+		String resultList  = WebUtils.findParameterValue(request, "resultList");
+		List<Map<String,Object>> detailList = new Gson().fromJson(resultList, new TypeToken<List<Map<String,Object>>>() {}.getType());
+		//获取排班日期
+		String zbDate = WebUtils.findParameterValue(request, "zbDate");
+		//获取排班开始时间
+		String startTime = WebUtils.findParameterValue(request, "startTime");
+		//获取排班结束时间
+		String endTime = WebUtils.findParameterValue(request, "endTime");
+		//获取用户信息
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		try{
+				
+			bizTXjZbPlanService.saveZbPlan(detailList,zbDate,startTime,endTime,loginInfo);
+			msg.put("message", "保存成功！");
+		}catch(Exception e){
+				
+			msg.put("message", "保存失败!");
+			logger.error("保存失败，" + e.getMessage());
+		}
+		return msg;
+	}
+	
+	/**
+	 * 查看详情
+	 * 
+	 * @date 2017年9月21日 下午4:54:41
+	 * @author 陈涛
+	 * @param zbPlanId
+	 * @param backURL
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/detail")
+	public String detail(@RequestParam(value="zbPlanId",required=true)String zbPlanId,String backURL,HttpServletRequest request,ModelMap map){
+		//获取主表信息
+		BizTXjZbPlan bizTXjZbPlan = bizTXjZbPlanService.findOne(BizTXjZbPlan.class, zbPlanId);
+		map.put("bizTXjZbPlan", bizTXjZbPlan);
+		//获取从表信息
+		List<Map<String,Object>> infoList = bizTXjZbPlanService.findInfoList(zbPlanId);
+		Map<String,Object> maps = new HashMap<String,Object>();
+		for (Map<String, Object> map2 : infoList) {
+			maps.put(map2.get("technics_id").toString()+map2.get("detail_id").toString(),map2.get("pname"));
+		}
+		map.put("maps", new Gson().toJson(maps));
+		//获取班次
+		List<Map<String,Object>> bc = bizTXjZbPlanService.getBcIndetail(zbPlanId);
+		map.put("bcJson", new Gson().toJson(bc));
+		//获取工艺段
+		List<Map<String,Object>> gyd =   bizTXjZbPlanService.getGydIndetail(zbPlanId);
+		map.put("gydJson", new Gson().toJson(gyd));
+		map.put("backURL", backURL);
+		return JSP_PR+"/detail";
+	}
+	
+	/**
+	 * 删除
+	 * 
+	 * @date 2017年9月22日 上午9:42:41
+	 * @author 陈涛
+	 * @param id
+	 * @param update
+	 * @param request
+	 * @param map
+	 * @return 
+	 */
+	@RequestMapping("/delZbPlan")
+	@ResponseBody
+	public Map<String, Object> delZbPlan(@RequestParam(value="id",required=true)String id,String update,HttpServletRequest request,ModelMap map){
+		Map<String, Object> msg = new HashMap<String,Object>();
+
+		BizTXjZbPlan bizTXjZbPlan = bizTXjZbPlanService.findOne(BizTXjZbPlan.class, id);
+		String updateTime = bizTXjZbPlan.getUpdateTimestemp();
+		if(update.equals(updateTime)){
+			try{
+				
+				bizTXjZbPlanService.delZbPlan(id);
+				msg.put("message", "删除成功!");
+			}catch(Exception e){
+				
+				msg.put("message", "删除失败!");
+				logger.error("删除失败，" + e.getMessage());
+			}
+		}else{
+			msg.put("message", "数据已经发生变化，请重新刷新后操作！");
+		}
+		return msg;
+	}
+	
+	@RequestMapping("/toModifyZbPlan")
+	public String toModifyZbPlan(@RequestParam(value="zbPlanId",required=true)String zbPlanId,String backURL,HttpServletRequest request,ModelMap map){
+		//获取主表信息
+		BizTXjZbPlan bizTXjZbPlan = bizTXjZbPlanService.findOne(BizTXjZbPlan.class, zbPlanId);
+		map.put("bizTXjZbPlan", bizTXjZbPlan);
+		//获取从表信息
+		List<Map<String,Object>> infoList = bizTXjZbPlanService.findInfoList(zbPlanId);
+		Map<String,Object> maps = new HashMap<String,Object>();
+		for (Map<String, Object> map2 : infoList) {
+			maps.put(map2.get("technics_id").toString()+map2.get("detail_id").toString(),map2.get("pid"));
+		}
+		map.put("maps", new Gson().toJson(maps));
+		//获取班次
+		List<Map<String,Object>> bc = bizTXjZbPlanService.getBcIndetail(zbPlanId);
+		map.put("bcJson", new Gson().toJson(bc));
+		//获取工艺段
+		List<Map<String,Object>> gyd =   bizTXjZbPlanService.getGydIndetail(zbPlanId);
+		map.put("gydJson", new Gson().toJson(gyd));
+		//获取班次开始和结束时间
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+		Map<String,Object> times = bizTXjZbPlanService.getTimes(loginInfo.getCsOrgId());
+		map.put("times", times);
+				
+		map.put("backURL", backURL);
+		
+		return JSP_PR+"/modifyZbPlan";
+	}
+	
+	@RequestMapping("/doModifyZbPlan")
+	@ResponseBody
+	public Map<String, Object> doModifyZbPlan(@RequestParam(value="zbPlanId",required=true)String zbPlanId,String updateTimestemp,HttpServletRequest request,ModelMap map){
+		Map<String, Object> msg = new HashMap<String,Object>();
+
+		//获取负责人数据
+		String resultList  = WebUtils.findParameterValue(request, "resultList");
+		List<Map<String,Object>> detailList = new Gson().fromJson(resultList, new TypeToken<List<Map<String,Object>>>() {}.getType());
+		//获取排班日期
+		String zbDate = WebUtils.findParameterValue(request, "zbDate");
+		//获取排班开始时间
+		String startTime = WebUtils.findParameterValue(request, "startTime");
+		//获取排班结束时间
+		String endTime = WebUtils.findParameterValue(request, "endTime");
+		//获取用户信息
+		WSLoginInfoBean loginInfo = SysUtils.getLoginInfo(request);
+				
+		BizTXjZbPlan bizTXjZbPlan = bizTXjZbPlanService.findOne(BizTXjZbPlan.class, zbPlanId);
+		String updateTime = bizTXjZbPlan.getUpdateTimestemp();
+		
+		if(updateTime.equals(updateTimestemp)){
+			try{
+				
+				bizTXjZbPlanService.updateZbPlan(bizTXjZbPlan,zbDate,startTime,endTime,detailList,loginInfo);
+				msg.put("message", "保存成功!");
+			}catch(Exception e){
+				
+				msg.put("message", "保存失败!");
+				logger.error("保存失败，" + e.getMessage());
+			}
+		}else{
+			msg.put("message", "数据已经发生变化，请重新刷新后操作！");
+		}
+		
+		return msg;
+	}
+}

@@ -1,0 +1,34 @@
+create or replace function F_FORMAT_TASK_TIME(taskdate in varchar2, starttime in varchar2,endtime in varchar2,type in varchar2 :=1) return varchar2 is
+  /**
+格式化计算任务的开始与结束日期，即通过给定的任务日期，与期望的开始时间(hhMM)，结束时间(hhMM)，计算任务开始结束时间（yyyymmddHH24mi）
+主要是处理跨天的情况
+参数  taskdate 任务的时间
+参数  starttime 开始时间 应该是来源于工作频次及内容表中的时间
+参数  endtime 结束时间 应该是来源于工作频次及内容表中的时间
+参数  type 1 计算开始时间 2 计算结束时间
+返回值 计算出的开始时间或结束时间
+*/
+  Result varchar2(200);
+  v_taskdate varchar2(32) :='';
+begin
+  IF starttime > endtime THEN  --说明跨天
+    --说明跨天需要特别处理，主要是结束时间需要特别处理
+    IF type =1 THEN
+      Result :=taskdate||starttime||'00';  --开始时间
+    ELSE
+      SELECT TO_CHAR(TO_DATE(taskdate,'yyyymmdd')+1,'yyyymmdd') INTO v_taskdate FROM DUAL;
+      Result :=v_taskdate||endtime||'00';     --结束时间
+    END IF;
+
+
+  ELSE
+    IF type =1 THEN
+      Result :=taskdate||starttime||'00';  --开始时间
+    ELSE
+      Result :=taskdate||endtime||'00';     --结束时间
+    END IF;
+
+  END IF;
+  return(Result);
+end F_FORMAT_TASK_TIME;
+/
